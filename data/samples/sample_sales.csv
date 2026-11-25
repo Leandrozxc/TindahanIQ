@@ -1,0 +1,13 @@
+transaction_id,sold_at,sku,product_name,quantity_sold,unit_price
+TXN-1001,2026-11-20 07:30:00,COFF-001,Great Taste White Coffee Twin Pack 50g,6,15.00
+TXN-1002,2026-11-20 08:15:00,NOOD-001,Lucky Me! Pancit Canton Calamansi 80g,8,16.00
+TXN-1003,2026-11-20 12:10:00,BEV-001,Coca-Cola Mismo 290ml,12,20.00
+TXN-1004,2026-11-20 16:45:00,MILK-001,Bear Brand Fortified Powdered Milk 33g,5,15.00
+TXN-1005,2026-11-21 07:45:00,COFF-002,Kopiko Blanca Twin Pack 58g,5,15.00
+TXN-1006,2026-11-21 11:30:00,CAN-001,Century Tuna Flakes in Oil 155g,3,38.00
+TXN-1007,2026-11-21 15:20:00,BEV-001,Coca-Cola Mismo 290ml,15,20.00
+TXN-1008,2026-11-22 08:05:00,NOOD-001,Lucky Me! Pancit Canton Calamansi 80g,10,16.00
+TXN-1009,2026-11-22 09:40:00,COND-001,Silver Swan Soy Sauce 385ml,4,25.00
+TXN-1010,2026-11-22 17:15:00,HOME-001,Surf Fabric Conditioner Blossom Fresh 25ml,9,8.00
+TXN-1011,2026-11-23 13:00:00,CAN-002,Argentina Corned Beef 175g,2,42.00
+TXN-1012,2026-11-23 16:30:00,BEV-001,Coca-Cola Mismo 290ml,14,20.00

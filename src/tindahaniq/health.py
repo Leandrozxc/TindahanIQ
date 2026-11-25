@@ -1,4 +1,4 @@
-"""Deterministic runtime and environment health checks for TindahanIQ."""
+"""Deterministic runtime, storage, and SQLite schema health checks for TindahanIQ."""
 
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ from typing import Any, Literal
 
 from tindahaniq import __version__
 from tindahaniq.config import AppSettings
+from tindahaniq.db.connection import DatabaseManager
+from tindahaniq.exceptions import DatabaseError
 
 CheckStatus = Literal["ok", "notice", "error"]
 OverallStatus = Literal["healthy", "degraded"]
@@ -82,6 +84,23 @@ def _check_storage_directory(db_path: Path) -> HealthCheckItem:
     )
 
 
+def _check_sqlite_database(db_path: Path) -> HealthCheckItem:
+    try:
+        manager = DatabaseManager(db_path)
+        manager.initialize_schema()
+    except DatabaseError as exc:
+        return HealthCheckItem(
+            name="SQLite Persistence",
+            status="error",
+            detail=f"Database schema check failed ({exc.user_message}).",
+        )
+    return HealthCheckItem(
+        name="SQLite Persistence",
+        status="ok",
+        detail=f"SQLite schema verified at `{db_path.name}` (foreign keys & WAL active).",
+    )
+
+
 def _check_ai_configuration(settings: AppSettings) -> HealthCheckItem:
     if settings.has_ai_api_key:
         return HealthCheckItem(
@@ -99,7 +118,18 @@ def _check_ai_configuration(settings: AppSettings) -> HealthCheckItem:
 
 
 def run_health_checks(settings: AppSettings) -> SystemHealthReport:
-    """Execute deterministic health checks without exposing secrets or mutating store data."""
+    """Execute deterministic health checks without exposing secrets."""
+    resolved_db = settings.resolved_database_path
+    storage_check = _check_storage_directory(resolved_db)
+    db_check = (
+        _check_sqlite_database(resolved_db)
+        if storage_check.status == "ok"
+        else HealthCheckItem(
+            name="SQLite Persistence",
+            status="error",
+            detail="Skipped SQLite initialization because storage directory is unavailable.",
+        )
+    )
     checks = (
         HealthCheckItem(
             name="Application Configuration",
@@ -110,7 +140,8 @@ def run_health_checks(settings: AppSettings) -> SystemHealthReport:
             ),
         ),
         _check_python_runtime(),
-        _check_storage_directory(settings.resolved_database_path),
+        storage_check,
+        db_check,
         _check_ai_configuration(settings),
     )
     has_error = any(item.status == "error" for item in checks)

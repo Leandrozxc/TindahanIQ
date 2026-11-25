@@ -21,6 +21,7 @@ def test_health_report_healthy_without_ai_key(isolated_env: Path) -> None:
     assert statuses["Application Configuration"] == "ok"
     assert statuses["Python Runtime"] == "ok"
     assert statuses["Local Data Directory"] == "ok"
+    assert statuses["SQLite Persistence"] == "ok"
     assert statuses["AI Provider Key"] == "notice"
 
 
