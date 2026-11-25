@@ -282,3 +282,36 @@ def test_performance_benchmark_500_products_and_5000_sales(tmp_path: Path) -> No
     # 4 BI engines combined must finish in under 2.5 seconds (typically < 0.25s)
     assert bi_elapsed < 2.5
     assert import_elapsed < 10.0
+
+
+def test_demo_14d_presentation_datasets_import_and_reconcile_cleanly(
+    tmp_path: Path,
+) -> None:
+    """Verify the 18-SKU, 6-category, 14-day classroom demo CSVs import with zero errors."""
+    db = DatabaseManager(tmp_path / "demo_14d.db")
+    db.initialize_schema()
+    importer = CSVImportService(db)
+
+    inv_res = importer.import_inventory_csv(
+        PROJECT_ROOT / "data" / "samples" / "demo_sari_sari_inventory.csv"
+    )
+    sales_res = importer.import_sales_csv(
+        PROJECT_ROOT / "data" / "samples" / "demo_sari_sari_sales_14d.csv"
+    )
+
+    assert inv_res.rows_created == 18
+    assert inv_res.rows_rejected == 0
+    assert sales_res.rows_created == 37
+    assert sales_res.rows_rejected == 0
+
+    categories = InventoryService(db).list_categories()
+    assert len(categories) == 6
+
+    comp_7d = SalesAnalyticsService(db).compare_periods(window_days=7)
+    assert comp_7d.previous_revenue > Decimal("0.00")
+    assert comp_7d.current_revenue > Decimal("0.00")
+    assert comp_7d.revenue_change_pct is not None
+
+    consistency = ConsistencyService(db).verify_data_consistency()
+    assert consistency.is_consistent is True
+    assert consistency.error_count == 0

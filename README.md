@@ -1,74 +1,133 @@
-# TindahanIQ
+# TindahanIQ: An AI-Powered Business Assistant for Small Retailers
 
-**TindahanIQ** is an AI-powered business intelligence assistant designed to help Filipino sari-sari store owners, neighborhood retailers, and micro-entrepreneurs make informed inventory, pricing, sales, and profitability decisions using their actual store records.
-
-> **Current Milestone:** Phase 1 — Repository Initialization and Application Foundation  
-> Core configuration, logging, error handling, Streamlit shell, and runtime health diagnostics are active. Business data ingestion, analytics engines, and AI consultation will be introduced incrementally across Phases 2–6.
+**Course project:** CS365-F1 Final Project  
+**Authors / Instructor:** _(add team members and instructor names here before submission)_
 
 ---
 
-## Prerequisites
+## Overview
 
-- **Python 3.12+**
-- **Git**
+**TindahanIQ** is an AI-powered business intelligence assistant built with Python and Streamlit for Filipino **sari-sari store owners, neighborhood retailers, and micro-entrepreneurs**. It combines deterministic base-10 `Decimal` financial analytics with a tool-calling Google Gemini AI Business Consultant so small retailers can understand their actual store records and make informed inventory, pricing, and profitability decisions in plain language.
+
+### Core Modules
+
+1. **Inventory Intelligence** — Detects out-of-stock and low-stock items (`CRITICAL`, `HIGH`, `LOW`, `HEALTHY`), calculates historical daily sales velocity and days until depletion, recommends whole-unit restock quantities, and allocates restocking priorities within a fixed PHP (`₱`) working-capital budget.
+2. **Profitability Analyzer** — Deterministically computes gross revenue, Cost of Goods Sold (COGS), gross profit (`₱`), **gross profit margin (`%`)**, and **markup (`%`)** across individual products, categories, and the entire store.
+3. **Sales Analytics** — Identifies top-selling and slow/zero-moving products, aggregates daily/weekly/monthly trends, calculates period-over-period growth deltas, and detects peak sales hours.
+4. **Pricing Simulator** — Models hypothetical selling-price changes (`±₱` amount, target price, or `±%`) with optional customer volume sensitivity and breakeven volume calculations before shelf prices are changed.
+5. **AI Business Consultant** — Answers natural-language retail questions grounded strictly in read-only deterministic calculation tools (zero numerical hallucination or mental math), with prompt-injection defenses for untrusted CSV uploads.
+
+### Scope Boundaries (What TindahanIQ Does NOT Do)
+
+- Does **not** execute supplier purchases, orders, or external financial transactions.
+- Does **not** guarantee future sales, demand, or financial forecasts.
+- Does **not** collect, store, or access private banking, e-wallet, or payment credentials.
+- Does **not** replace certified accounting, legal, or tax advisory services.
+- Never invents inventory counts, prices, or financial figures.
 
 ---
 
-## Local Setup Instructions
+## Technology Stack
 
-1. **Create and activate a virtual environment** (from the repository root):
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Runtime** | Python `3.12+` | Core application language & exact `decimal.Decimal` math |
+| **Web UI** | Streamlit (`>=1.40`) | Multipage dashboard, split-view AI workspace & forms |
+| **Persistence** | SQLite 3 (`sqlite3` stdlib) | Serverless local ACID relational storage (WAL + Foreign Keys) |
+| **Validation & Config** | Pydantic v2 + `pydantic-settings` | Strict domain schemas, CSV validation & `SecretStr` key masking |
+| **Data & CSV** | Pandas (`>=2.2`) | CSV encoding/header normalization & tabular display |
+| **Visualization** | Plotly (`>=5.24`) | Interactive `₱`-formatted trend, category & simulation charts |
+| **AI Integration** | Google GenAI SDK (`google-genai`) | `gemini-2.5-flash` native function/tool calling |
+| **Quality & Tests** | `pytest`, `pytest-cov`, `ruff`, `AppTest` | Unit, integration, UI workflow, security & performance verification |
 
-   **Windows (PowerShell):**
-   ```powershell
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
+---
 
-   **macOS / Linux:**
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
+## Local Setup & Installation
 
-2. **Install TindahanIQ and development tools in editable mode:**
+### 1. Clone the Repository & Create a Virtual Environment
 
-   ```powershell
-   python -m pip install --upgrade pip
-   pip install -e ".[dev]"
-   ```
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/Leandrozxc/TindahanIQ.git
+cd TindahanIQ
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
 
-3. **Configure environment variables:**
+**macOS / Linux:**
+```bash
+git clone https://github.com/Leandrozxc/TindahanIQ.git
+cd TindahanIQ
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-   Copy `.env.example` to `.env` (optional for Phase 1; sensible local defaults are built in):
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-   > Never commit `.env` or real API keys to Git. `GEMINI_API_KEY` is optional until Phase 5.
+### 2. Install Dependencies
+
+```powershell
+python -m pip install --upgrade pip
+pip install -e ".[dev]"
+```
+
+### 3. Configure Environment Variables
+
+Copy `.env.example` to `.env`:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Edit `.env` and add your Google AI Studio API key (`GEMINI_API_KEY`) to enable the conversational AI Business Consultant:
+
+```env
+APP_NAME=TindahanIQ
+APP_ENV=development
+LOG_LEVEL=INFO
+STORE_NAME=My Sari-Sari Store
+CURRENCY_SYMBOL=₱
+CURRENCY_CODE=PHP
+DATABASE_PATH=data/tindahaniq.db
+GEMINI_API_KEY=your_google_ai_studio_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+> **Note:** Never commit `.env` to Git. All non-AI modules (Dashboard, Inventory & Budget Planner, Sales & Profitability Analytics, Pricing Simulator, and CSV Upload) work 100% offline even without an API key.
 
 ---
 
 ## Running the Application
 
-Start the Streamlit application from the repository root (with `.venv` activated):
-
 ```powershell
 streamlit run src/tindahaniq/app.py
 ```
 
-- **Interactive UI:** `http://localhost:8501`
-- **JSON Health Probe:** `http://localhost:8501/?healthz=1`
+- **Web Interface:** `http://localhost:8501`
+- **JSON Health Check:** `http://localhost:8501/?healthz=1`
 
 ---
 
-## Testing & Code Quality
+## Sample CSV Datasets
 
-Run the automated test suite with coverage:
+Ready-to-use Filipino sari-sari store CSV datasets are located in `data/samples/`:
+
+- `data/samples/demo_sari_sari_inventory.csv` & `data/samples/demo_sari_sari_sales_14d.csv` — **18-product, 6-category, 14-day presentation dataset** ideal for live classroom demonstrations of week-over-week trends, slow movers, and `₱2,000` budget restock planning.
+- `data/samples/sample_inventory.csv` & `data/samples/sample_sales.csv` — Compact 10-product baseline dataset (also loadable in one click from the empty-store onboarding card).
+
+### Supported CSV Columns
+- **Inventory CSV:** `product_name` *(req)*, `unit_cost` *(req)*, `selling_price` *(req)*, `current_stock` *(req)*, plus optional `sku`, `category`, `unit`, `reorder_point`, `lead_time_days` (also accepts common aliases such as `pangalan`, `puhunan`, `presyo`, `stock`).
+- **Sales CSV:** `sold_at` / `date` *(req)*, `sku` or `product_name` *(req)*, `quantity_sold` *(req)*, plus optional `transaction_id` / `receipt_no` and `unit_price`.
+
+---
+
+## Automated Testing & Code Quality
+
+Run the full unit, integration, security, UI, and performance test suite:
 
 ```powershell
 pytest --cov=tindahaniq --cov-report=term-missing
 ```
 
-Run linting and formatting checks:
+Run linter and code formatting checks:
 
 ```powershell
 ruff check .
@@ -77,25 +136,9 @@ ruff format --check .
 
 ---
 
-## Project Structure (Phase 1)
+## Technical Documentation
 
-```text
-tindahanIQ/
-├── .env.example                  # Environment variable template (safe to commit)
-├── .gitignore                    # Excludes secrets, .venv, local SQLite DBs, caches
-├── pyproject.toml                # Package metadata, dependencies, pytest & ruff config
-├── README.md                     # Setup and developer guide
-├── data/                         # Runtime local SQLite storage directory (*.db gitignored)
-├── src/
-│   └── tindahaniq/
-│       ├── __init__.py           # Package version
-│       ├── app.py                # Streamlit entry point & System Health UI
-│       ├── config.py             # Typed Pydantic Settings & SecretStr API key protection
-│       ├── exceptions.py         # Domain exception hierarchy & user-safe messages
-│       ├── health.py             # Deterministic runtime & storage health checks
-│       └── logging_config.py     # Rerun-safe structured logging configuration
-└── tests/
-    ├── conftest.py               # Isolated environment fixtures
-    ├── unit/                     # Configuration, exceptions, logging & health unit tests
-    └── integration/              # Headless Streamlit AppTest smoke tests
-```
+- [System Architecture & Data Model](docs/architecture.md)
+- [Authoritative Business Intelligence Formulas](docs/formulas.md)
+- [Phase 7 Quality Assurance & Security Report](docs/qa_report.md)
+- [Live Demonstration Guide & Submission Checklist](docs/demo_checklist.md)

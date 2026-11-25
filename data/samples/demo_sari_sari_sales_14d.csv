@@ -1,0 +1,38 @@
+transaction_id,sold_at,sku,product_name,quantity_sold,unit_price
+DEMO-001,2026-11-12 07:20:00,COFF-001,Great Taste White Coffee Twin Pack 50g,8,15.00
+DEMO-002,2026-11-12 08:40:00,NOOD-001,Lucky Me! Pancit Canton Calamansi 80g,10,16.00
+DEMO-003,2026-11-12 16:15:00,BEV-001,Coca-Cola Mismo 290ml,12,20.00
+DEMO-004,2026-11-13 07:50:00,COFF-002,Kopiko Blanca Twin Pack 58g,7,15.00
+DEMO-005,2026-11-13 12:10:00,CAN-003,555 Sardines in Tomato Sauce 155g,5,25.00
+DEMO-006,2026-11-13 17:30:00,BEV-001,Coca-Cola Mismo 290ml,10,20.00
+DEMO-007,2026-11-14 08:15:00,MILK-001,Bear Brand Fortified Powdered Milk 33g,8,15.00
+DEMO-008,2026-11-14 15:45:00,NOOD-001,Lucky Me! Pancit Canton Calamansi 80g,14,16.00
+DEMO-009,2026-11-14 18:10:00,CAN-002,Argentina Corned Beef 175g,4,42.00
+DEMO-010,2026-11-15 09:00:00,HOME-001,Surf Fabric Conditioner Blossom Fresh 25ml,15,8.00
+DEMO-011,2026-11-15 16:40:00,BEV-002,C2 Solo Apple Green Tea 230ml,9,16.00
+DEMO-012,2026-11-16 07:35:00,COFF-001,Great Taste White Coffee Twin Pack 50g,9,15.00
+DEMO-013,2026-11-16 12:30:00,NOOD-002,Lucky Me! Beef na Beef Mami 55g,8,12.00
+DEMO-014,2026-11-17 11:20:00,COND-001,Silver Swan Soy Sauce 385ml,4,25.00
+DEMO-015,2026-11-17 17:05:00,BEV-001,Coca-Cola Mismo 290ml,11,20.00
+DEMO-016,2026-11-18 08:10:00,MILK-001,Bear Brand Fortified Powdered Milk 33g,7,15.00
+DEMO-017,2026-11-18 16:50:00,CAN-001,Century Tuna Flakes in Oil 155g,4,38.00
+DEMO-018,2026-11-19 07:15:00,COFF-001,Great Taste White Coffee Twin Pack 50g,11,15.00
+DEMO-019,2026-11-19 12:05:00,NOOD-001,Lucky Me! Pancit Canton Calamansi 80g,12,16.00
+DEMO-020,2026-11-19 16:45:00,BEV-001,Coca-Cola Mismo 290ml,14,20.00
+DEMO-021,2026-11-20 07:40:00,COFF-002,Kopiko Blanca Twin Pack 58g,9,15.00
+DEMO-022,2026-11-20 11:50:00,COND-002,Datu Puti Cane Vinegar 385ml,5,22.00
+DEMO-023,2026-11-20 17:20:00,NOOD-003,Payless Xtra Big Pancitanton Chilimansi 130g,7,20.00
+DEMO-024,2026-11-21 08:30:00,NOOD-001,Lucky Me! Pancit Canton Calamansi 80g,16,16.00
+DEMO-025,2026-11-21 15:10:00,BEV-001,Coca-Cola Mismo 290ml,20,20.00
+DEMO-026,2026-11-21 17:45:00,CAN-002,Argentina Corned Beef 175g,6,42.00
+DEMO-027,2026-11-21 18:20:00,HOME-002,Joy Dishwashing Liquid Lemon Sachet 40ml,8,13.00
+DEMO-028,2026-11-22 09:15:00,HOME-001,Surf Fabric Conditioner Blossom Fresh 25ml,18,8.00
+DEMO-029,2026-11-22 16:30:00,BEV-002,C2 Solo Apple Green Tea 230ml,11,16.00
+DEMO-030,2026-11-23 07:25:00,COFF-001,Great Taste White Coffee Twin Pack 50g,12,15.00
+DEMO-031,2026-11-23 12:15:00,NOOD-002,Lucky Me! Beef na Beef Mami 55g,10,12.00
+DEMO-032,2026-11-23 17:00:00,COND-001,Silver Swan Soy Sauce 385ml,5,25.00
+DEMO-033,2026-11-24 08:05:00,MILK-001,Bear Brand Fortified Powdered Milk 33g,10,15.00
+DEMO-034,2026-11-24 16:20:00,CAN-003,555 Sardines in Tomato Sauce 155g,7,25.00
+DEMO-035,2026-11-25 07:30:00,NOOD-001,Lucky Me! Pancit Canton Calamansi 80g,15,16.00
+DEMO-036,2026-11-25 12:40:00,COND-003,UFC Banana Catsup Tamis Anghang 320g,4,30.00
+DEMO-037,2026-11-25 16:55:00,BEV-001,Coca-Cola Mismo 290ml,18,20.00
