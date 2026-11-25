@@ -29,6 +29,7 @@ def render_system_help(ctx: AppContext) -> None:
                 "Store Display Name",
                 value=str(st.session_state.get("store_display_name", ctx.settings.store_name)),
                 max_chars=100,
+                key="pref_store_name",
             )
             new_lookback = st.number_input(
                 "Default Velocity Lookback Window (Days)",

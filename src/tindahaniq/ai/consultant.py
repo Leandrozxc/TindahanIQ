@@ -29,12 +29,14 @@ class AIConsultantService:
         *,
         provider: LLMProvider | None = None,
         max_tool_rounds: int = 5,
+        store_name: str | None = None,
     ) -> None:
         self._db = db
         self._settings = settings
         self._provider = provider
         self._max_tool_rounds = max(1, max_tool_rounds)
-        self._tools = BusinessToolRegistry(db, store_name=settings.store_name)
+        effective_store = (store_name or settings.store_name).strip() or settings.store_name
+        self._tools = BusinessToolRegistry(db, store_name=effective_store)
         self._logger = get_logger("ai_consultant")
 
     def _get_provider(self) -> LLMProvider:

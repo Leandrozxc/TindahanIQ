@@ -72,7 +72,8 @@ def run_ui(settings: AppSettings) -> None:
     """Initialize session state, theme CSS, services, sidebar, and active page view."""
     inject_theme_css()
     init_session_state(settings)
-    ctx = build_app_context(settings)
+    active_store_name = str(st.session_state.get("store_display_name", settings.store_name))
+    ctx = build_app_context(settings, store_name=active_store_name)
     render_sidebar(ctx)
 
     flash_msg = consume_flash_success()

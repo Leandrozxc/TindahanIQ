@@ -15,6 +15,8 @@ CONTROL_CHAR_RE = re.compile(r"[\x00-\x1f\x7f]+")
 WHITESPACE_RE = re.compile(r"\s+")
 CURRENCY_STRIP_RE = re.compile(r"(?i)^(?:\s*(?:php|₱|\$)\s*)|(?:\s*(?:php)\s*)$")
 SKU_CLEAN_RE = re.compile(r"[^A-Z0-9]+")
+SAFE_NEGATIVE_NUM_RE = re.compile(r"^-[₱$]?\d[\d,]*(?:\.\d+)?%?$")
+CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 SUPPORTED_DATE_FORMATS = (
     "%Y-%m-%d",
@@ -379,3 +381,13 @@ def _parse_datetime_string(text: str, *, field_name: str) -> datetime:
             ),
             details={"field": field_name, "raw_value": text},
         ) from exc
+
+
+def escape_csv_formula(value: object) -> str:
+    """Neutralize spreadsheet formula-injection prefixes (`=`, `+`, `-`, `@`) on CSV export."""
+    text = "" if value is None else str(value)
+    if not text:
+        return ""
+    if text.startswith(CSV_FORMULA_PREFIXES) and not SAFE_NEGATIVE_NUM_RE.match(text):
+        return f"'{text}"
+    return text

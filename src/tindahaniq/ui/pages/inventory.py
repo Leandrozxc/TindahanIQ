@@ -21,6 +21,7 @@ from tindahaniq.ui.components import render_empty_store_onboarding
 from tindahaniq.ui.context import AppContext
 from tindahaniq.ui.state import set_flash_success
 from tindahaniq.ui.theme import format_php
+from tindahaniq.utils import escape_csv_formula
 
 
 def render_inventory(ctx: AppContext) -> None:
@@ -208,7 +209,10 @@ def _render_budget_planner_tab(ctx: AppContext) -> None:
         csv_buf = io.StringIO()
         writer = csv.DictWriter(csv_buf, fieldnames=list(funded_rows[0].keys()))
         writer.writeheader()
-        writer.writerows(funded_rows)
+        safe_csv_rows = [
+            {col: escape_csv_formula(val) for col, val in row.items()} for row in funded_rows
+        ]
+        writer.writerows(safe_csv_rows)
         st.download_button(
             "⬇ Download Restock Shopping List (.csv)",
             data=csv_buf.getvalue().encode("utf-8"),
@@ -335,7 +339,11 @@ def _render_catalog_and_audit_tab(ctx: AppContext) -> None:
     with col_add, st.container(border=True):
         st.markdown("#### ➕ Add New Product")
         with st.form("add_product_form", clear_on_submit=True):
-            p_name = st.text_input("Product Name *", placeholder="e.g. Milo Activ-Go 24g")
+            p_name = st.text_input(
+                "Product Name *",
+                placeholder="e.g. Milo Activ-Go 24g",
+                key="add_prod_name",
+            )
             c1, c2 = st.columns(2)
             p_sku = c1.text_input("SKU (Optional — auto-generated if blank)")
             p_cat = c2.text_input("Category", value="Beverages")

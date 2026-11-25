@@ -48,7 +48,11 @@ class AppContext:
         return inv_res.rows_accepted, sales_res.rows_accepted
 
 
-def build_app_context(settings: AppSettings) -> AppContext:
+def build_app_context(
+    settings: AppSettings,
+    *,
+    store_name: str | None = None,
+) -> AppContext:
     """Instantiate and initialize database-backed services for the current request."""
     db = DatabaseManager(settings.resolved_database_path)
     db.initialize_schema()
@@ -63,5 +67,5 @@ def build_app_context(settings: AppSettings) -> AppContext:
         sales_analytics=SalesAnalyticsService(db),
         inventory_intel=InventoryIntelligenceService(db),
         pricing_sim=PricingSimulatorService(db),
-        ai_consultant=AIConsultantService(db, settings),
+        ai_consultant=AIConsultantService(db, settings, store_name=store_name),
     )

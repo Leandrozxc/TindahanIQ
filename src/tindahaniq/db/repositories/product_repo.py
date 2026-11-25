@@ -514,9 +514,14 @@ class ProductRepository:
             clauses.append("LOWER(p.category) = ?")
             params.append(category.strip().lower())
         if query is not None and query.strip():
-            pattern = f"%{query.strip().lower()}%"
+            escaped = (
+                query.strip().lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            )
+            pattern = f"%{escaped}%"
             clauses.append(
-                "(LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ? OR LOWER(p.category) LIKE ?)"
+                "(LOWER(p.name) LIKE ? ESCAPE '\\' "
+                "OR LOWER(p.sku) LIKE ? ESCAPE '\\' "
+                "OR LOWER(p.category) LIKE ? ESCAPE '\\')"
             )
             params.extend([pattern, pattern, pattern])
         if out_of_stock_only:

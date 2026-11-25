@@ -19,7 +19,7 @@ from tindahaniq.services.bi import (
     ProfitabilityAnalyzer,
     SalesAnalyticsService,
 )
-from tindahaniq.utils.validation import parse_sale_timestamp
+from tindahaniq.utils.validation import parse_non_negative_int, parse_sale_timestamp
 
 DATA_NOTICE = (
     "All product names, SKUs, and categories originate from user-provided store records; "
@@ -366,7 +366,12 @@ class BusinessToolRegistry:
             )
 
     def _handle_store_overview(self, args: dict[str, Any]) -> dict[str, Any]:
-        window_days = int(args.get("window_days") or 7)
+        raw_win = args.get("window_days")
+        window_days = (
+            parse_non_negative_int(raw_win, field_name="window_days", min_value=1)
+            if raw_win is not None
+            else 7
+        )
         snapshot = self.get_store_snapshot()
         if snapshot["active_products"] == 0:
             return {
@@ -458,7 +463,12 @@ class BusinessToolRegistry:
             if sort_raw in {"gross_profit", "gross_margin_pct", "gross_revenue", "unit_profit"}
             else "gross_profit"
         )
-        top_n = max(1, int(args.get("top_n") or 10))
+        raw_top = args.get("top_n")
+        top_n = (
+            parse_non_negative_int(raw_top, field_name="top_n", min_value=1)
+            if raw_top is not None
+            else 10
+        )
         product_query = str(args.get("product_query") or "").strip().lower()
         start_at = _parse_optional_date(args.get("start_date"))
         end_at = _parse_optional_date(args.get("end_date"), end_of_day=True)
@@ -528,7 +538,12 @@ class BusinessToolRegistry:
             if gran_raw in {"daily", "weekly", "monthly"}
             else "daily"
         )
-        top_n = max(1, int(args.get("top_n") or 5))
+        raw_top = args.get("top_n")
+        top_n = (
+            parse_non_negative_int(raw_top, field_name="top_n", min_value=1)
+            if raw_top is not None
+            else 5
+        )
         start_at = _parse_optional_date(args.get("start_date"))
         end_at = _parse_optional_date(args.get("end_date"), end_of_day=True)
 
@@ -586,8 +601,18 @@ class BusinessToolRegistry:
         }
 
     def _handle_restock_recommendations(self, args: dict[str, Any]) -> dict[str, Any]:
-        lookback = int(args.get("lookback_days") or 14)
-        coverage = int(args.get("target_coverage_days") or 7)
+        raw_lb = args.get("lookback_days")
+        lookback = (
+            parse_non_negative_int(raw_lb, field_name="lookback_days", min_value=1)
+            if raw_lb is not None
+            else 14
+        )
+        raw_cov = args.get("target_coverage_days")
+        coverage = (
+            parse_non_negative_int(raw_cov, field_name="target_coverage_days", min_value=1)
+            if raw_cov is not None
+            else 7
+        )
         product_query = str(args.get("product_query") or "").strip().lower()
         needs_only = bool(args.get("needs_restock_only", not bool(product_query)))
 
@@ -645,8 +670,18 @@ class BusinessToolRegistry:
                 user_message="Please specify a restocking budget in PHP (₱).",
                 details={"field": "budget_php"},
             )
-        lookback = int(args.get("lookback_days") or 14)
-        coverage = int(args.get("target_coverage_days") or 7)
+        raw_lb = args.get("lookback_days")
+        lookback = (
+            parse_non_negative_int(raw_lb, field_name="lookback_days", min_value=1)
+            if raw_lb is not None
+            else 14
+        )
+        raw_cov = args.get("target_coverage_days")
+        coverage = (
+            parse_non_negative_int(raw_cov, field_name="target_coverage_days", min_value=1)
+            if raw_cov is not None
+            else 7
+        )
         plan = self._inventory_intel.plan_restock_within_budget(
             args["budget_php"],
             lookback_days=lookback,

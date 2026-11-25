@@ -2,6 +2,7 @@
 
 from tindahaniq.utils.validation import (
     centavos_to_money,
+    escape_csv_formula,
     money_to_centavos,
     normalize_sku,
     parse_money_decimal,
@@ -13,6 +14,7 @@ from tindahaniq.utils.validation import (
 
 __all__ = [
     "centavos_to_money",
+    "escape_csv_formula",
     "money_to_centavos",
     "normalize_sku",
     "parse_money_decimal",
