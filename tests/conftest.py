@@ -1,0 +1,29 @@
+"""Shared pytest fixtures for isolated environment and storage testing."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+ENV_KEYS = (
+    "APP_NAME",
+    "APP_ENV",
+    "LOG_LEVEL",
+    "STORE_NAME",
+    "CURRENCY_SYMBOL",
+    "CURRENCY_CODE",
+    "DATABASE_PATH",
+    "GEMINI_API_KEY",
+    "GEMINI_MODEL",
+)
+
+
+@pytest.fixture
+def isolated_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """Clear TindahanIQ environment variables and point storage to a temporary directory."""
+    for key in ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
+    db_path = tmp_path / "data" / "test_tindahaniq.db"
+    monkeypatch.setenv("DATABASE_PATH", str(db_path))
+    return db_path
