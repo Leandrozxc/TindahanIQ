@@ -68,6 +68,48 @@ class SalesTransactionCreate(BaseModel):
         )
 
 
+class SaleItemInput(BaseModel):
+    """Operational checkout input for recording a live or backfilled product sale."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    product_id: int
+    quantity_sold: int
+    unit_price_override: Decimal | None = None
+    sold_at: datetime | None = None
+    external_ref: str | None = None
+
+    @field_validator("product_id", mode="before")
+    @classmethod
+    def _validate_product_id(cls, value: object) -> int:
+        return parse_non_negative_int(value, field_name="product_id", min_value=1)
+
+    @field_validator("quantity_sold", mode="before")
+    @classmethod
+    def _validate_quantity_sold(cls, value: object) -> int:
+        return parse_non_negative_int(value, field_name="quantity_sold", min_value=1)
+
+    @field_validator("unit_price_override", mode="before")
+    @classmethod
+    def _validate_price_override(cls, value: object) -> Decimal | None:
+        if value is None:
+            return None
+        return parse_money_decimal(value, field_name="unit_price_override", allow_zero=False)
+
+    @field_validator("sold_at", mode="before")
+    @classmethod
+    def _validate_sold_at(cls, value: object) -> datetime | None:
+        if value is None:
+            return None
+        return parse_sale_timestamp(value, field_name="sold_at")
+
+    @field_validator("external_ref", mode="before")
+    @classmethod
+    def _validate_external_ref(cls, value: object) -> str | None:
+        cleaned = sanitize_text(value, field_name="external_ref", max_length=80, allow_empty=True)
+        return cleaned or None
+
+
 class SalesTransaction(BaseModel):
     """Persisted sales transaction entity with snapped historical price and cost."""
 
@@ -95,3 +137,31 @@ class SalesTransaction(BaseModel):
     def gross_profit(self) -> Decimal:
         """Compute deterministic gross profit for this transaction line."""
         return self.gross_revenue - self.cogs
+
+
+class SaleRecordWithProduct(BaseModel):
+    """Enriched sales history row joining transaction details with catalog metadata."""
+
+    model_config = ConfigDict(frozen=True)
+
+    sale: SalesTransaction
+    sku: str
+    product_name: str
+    category: str
+    unit: str
+
+
+class ProductSalesSummary(BaseModel):
+    """Operational per-product sales activity tracking summary."""
+
+    model_config = ConfigDict(frozen=True)
+
+    product_id: int
+    sku: str
+    product_name: str
+    category: str
+    unit: str
+    is_active: bool
+    transaction_count: int
+    total_units_sold: int
+    last_sold_at: datetime | None = None

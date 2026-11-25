@@ -6,6 +6,7 @@ from tindahaniq.utils.validation import (
     normalize_sku,
     parse_money_decimal,
     parse_non_negative_int,
+    parse_nonzero_int,
     parse_sale_timestamp,
     sanitize_text,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "normalize_sku",
     "parse_money_decimal",
     "parse_non_negative_int",
+    "parse_nonzero_int",
     "parse_sale_timestamp",
     "sanitize_text",
 ]

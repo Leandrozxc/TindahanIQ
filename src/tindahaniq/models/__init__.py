@@ -8,17 +8,31 @@ from tindahaniq.models.import_result import (
     ImportWarning,
 )
 from tindahaniq.models.product import (
+    ConsistencyIssue,
+    ConsistencySeverity,
+    DataConsistencyReport,
     InventoryRecord,
     Product,
     ProductCreate,
+    ProductUpdate,
     ProductWithInventory,
     StockAdjustment,
+    StockAdjustmentCreate,
 )
-from tindahaniq.models.sales import SalesTransaction, SalesTransactionCreate
+from tindahaniq.models.sales import (
+    ProductSalesSummary,
+    SaleItemInput,
+    SaleRecordWithProduct,
+    SalesTransaction,
+    SalesTransactionCreate,
+)
 
 __all__ = [
     "AdjustmentReason",
     "CSVImportResult",
+    "ConsistencyIssue",
+    "ConsistencySeverity",
+    "DataConsistencyReport",
     "ExistingProductPolicy",
     "ImportBatch",
     "ImportRowError",
@@ -27,8 +41,13 @@ __all__ = [
     "InventoryRecord",
     "Product",
     "ProductCreate",
+    "ProductSalesSummary",
+    "ProductUpdate",
     "ProductWithInventory",
+    "SaleItemInput",
+    "SaleRecordWithProduct",
     "SalesTransaction",
     "SalesTransactionCreate",
     "StockAdjustment",
+    "StockAdjustmentCreate",
 ]

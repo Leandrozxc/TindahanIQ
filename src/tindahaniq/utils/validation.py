@@ -222,6 +222,64 @@ def parse_non_negative_int(
     return value
 
 
+def parse_nonzero_int(raw: object, *, field_name: str = "quantity_delta") -> int:
+    """Parse a signed whole-number delta while rejecting zero, fractions, and booleans."""
+    if _is_missing_scalar(raw) or isinstance(raw, bool):
+        raise ValidationError(
+            f"Missing or boolean signed integer for `{field_name}`",
+            user_message=f"`{field_name}` must be a non-zero whole number.",
+            details={"field": field_name},
+        )
+
+    if isinstance(raw, int):
+        value = raw
+    elif isinstance(raw, float):
+        if not math.isfinite(raw) or not raw.is_integer():
+            raise ValidationError(
+                f"Non-integer float `{raw}` for `{field_name}`",
+                user_message=f"`{field_name}` must be a whole number (no decimals).",
+                details={"field": field_name, "raw_value": str(raw)},
+            )
+        value = int(raw)
+    elif isinstance(raw, str):
+        cleaned = raw.strip().replace(",", "")
+        if not cleaned:
+            raise ValidationError(
+                f"Empty signed integer string for `{field_name}`",
+                user_message=f"`{field_name}` is required.",
+                details={"field": field_name},
+            )
+        try:
+            dec = Decimal(cleaned)
+        except InvalidOperation as exc:
+            raise ValidationError(
+                f"Invalid signed integer string `{raw}` for `{field_name}`",
+                user_message=f"`{field_name}` ('{raw}') must be a whole number.",
+                details={"field": field_name, "raw_value": raw},
+            ) from exc
+        if not dec.is_finite() or dec != dec.to_integral_value():
+            raise ValidationError(
+                f"Fractional signed string `{raw}` for `{field_name}`",
+                user_message=f"`{field_name}` ('{raw}') must be a whole number.",
+                details={"field": field_name, "raw_value": raw},
+            )
+        value = int(dec)
+    else:
+        raise ValidationError(
+            f"Unsupported type {type(raw).__name__} for `{field_name}`",
+            user_message=f"`{field_name}` must be a non-zero whole number.",
+            details={"field": field_name},
+        )
+
+    if value == 0:
+        raise ValidationError(
+            f"Zero value not allowed for `{field_name}`",
+            user_message=f"`{field_name}` cannot be zero.",
+            details={"field": field_name},
+        )
+    return value
+
+
 def normalize_sku(
     raw_sku: str | None,
     *,

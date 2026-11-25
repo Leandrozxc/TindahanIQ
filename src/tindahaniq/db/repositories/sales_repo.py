@@ -1,4 +1,4 @@
-"""SQLite persistence repository for sales transactions."""
+"""SQLite persistence repository for sales transactions and product sales summaries."""
 
 from __future__ import annotations
 
@@ -9,7 +9,12 @@ from datetime import UTC, datetime
 
 from tindahaniq.db.connection import DatabaseManager
 from tindahaniq.exceptions import ValidationError
-from tindahaniq.models.sales import SalesTransaction, SalesTransactionCreate
+from tindahaniq.models.sales import (
+    ProductSalesSummary,
+    SaleRecordWithProduct,
+    SalesTransaction,
+    SalesTransactionCreate,
+)
 from tindahaniq.utils.validation import centavos_to_money, money_to_centavos
 
 
@@ -155,3 +160,122 @@ class SalesRepository:
                 params,
             ).fetchall()
             return [_row_to_sale(row) for row in rows]
+
+    def list_sales_with_product(
+        self,
+        *,
+        product_id: int | None = None,
+        category: str | None = None,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+        newest_first: bool = True,
+        limit: int | None = None,
+        conn: sqlite3.Connection | None = None,
+    ) -> list[SaleRecordWithProduct]:
+        """Return sales history joined with product metadata and optional filters."""
+        clauses: list[str] = []
+        params: list[object] = []
+        if product_id is not None:
+            clauses.append("s.product_id = ?")
+            params.append(product_id)
+        if category is not None and category.strip():
+            clauses.append("LOWER(p.category) = ?")
+            params.append(category.strip().lower())
+        if start_at is not None:
+            clauses.append("s.sold_at >= ?")
+            params.append(start_at.astimezone(UTC).isoformat(timespec="seconds"))
+        if end_at is not None:
+            clauses.append("s.sold_at <= ?")
+            params.append(end_at.astimezone(UTC).isoformat(timespec="seconds"))
+
+        where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        order_sql = "DESC" if newest_first else "ASC"
+        limit_sql = ""
+        if limit is not None and limit > 0:
+            limit_sql = "LIMIT ?"
+            params.append(limit)
+
+        with self._use_read(conn) as active_conn:
+            rows = active_conn.execute(
+                f"""
+                SELECT
+                    s.*,
+                    p.sku,
+                    p.name AS product_name,
+                    p.category,
+                    p.unit
+                FROM sales_transactions s
+                JOIN products p ON p.id = s.product_id
+                {where_sql}
+                ORDER BY s.sold_at {order_sql}, s.id {order_sql}
+                {limit_sql}
+                """,
+                params,
+            ).fetchall()
+            return [
+                SaleRecordWithProduct(
+                    sale=_row_to_sale(row),
+                    sku=str(row["sku"]),
+                    product_name=str(row["product_name"]),
+                    category=str(row["category"]),
+                    unit=str(row["unit"]),
+                )
+                for row in rows
+            ]
+
+    def get_product_sales_summaries(
+        self,
+        *,
+        active_only: bool = False,
+        start_at: datetime | None = None,
+        end_at: datetime | None = None,
+        conn: sqlite3.Connection | None = None,
+    ) -> list[ProductSalesSummary]:
+        """Aggregate operational transaction counts and units sold per catalog product."""
+        join_clauses: list[str] = ["s.product_id = p.id"]
+        params: list[object] = []
+        if start_at is not None:
+            join_clauses.append("s.sold_at >= ?")
+            params.append(start_at.astimezone(UTC).isoformat(timespec="seconds"))
+        if end_at is not None:
+            join_clauses.append("s.sold_at <= ?")
+            params.append(end_at.astimezone(UTC).isoformat(timespec="seconds"))
+
+        where_sql = "WHERE p.is_active = 1" if active_only else ""
+        with self._use_read(conn) as active_conn:
+            rows = active_conn.execute(
+                f"""
+                SELECT
+                    p.id AS product_id,
+                    p.sku,
+                    p.name AS product_name,
+                    p.category,
+                    p.unit,
+                    p.is_active,
+                    COUNT(s.id) AS transaction_count,
+                    COALESCE(SUM(s.quantity_sold), 0) AS total_units_sold,
+                    MAX(s.sold_at) AS last_sold_at
+                FROM products p
+                LEFT JOIN sales_transactions s ON {" AND ".join(join_clauses)}
+                {where_sql}
+                GROUP BY p.id, p.sku, p.name, p.category, p.unit, p.is_active
+                ORDER BY total_units_sold DESC, p.name ASC
+                """,
+                params,
+            ).fetchall()
+            return [
+                ProductSalesSummary(
+                    product_id=int(row["product_id"]),
+                    sku=str(row["sku"]),
+                    product_name=str(row["product_name"]),
+                    category=str(row["category"]),
+                    unit=str(row["unit"]),
+                    is_active=bool(row["is_active"]),
+                    transaction_count=int(row["transaction_count"]),
+                    total_units_sold=int(row["total_units_sold"]),
+                    last_sold_at=datetime.fromisoformat(row["last_sold_at"])
+                    if row["last_sold_at"] is not None
+                    else None,
+                )
+                for row in rows
+            ]
