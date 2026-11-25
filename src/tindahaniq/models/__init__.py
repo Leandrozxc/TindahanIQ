@@ -1,5 +1,15 @@
-"""Domain and DTO schemas for TindahanIQ."""
+"""Domain, BI, and AI DTO schemas for TindahanIQ."""
 
+from tindahaniq.models.ai import (
+    ChatMessage,
+    ChatRole,
+    ConsultantResponse,
+    ConversationSession,
+    ProviderTurnResult,
+    ToolCallRequest,
+    ToolResultMessage,
+    ToolSpec,
+)
 from tindahaniq.models.analytics import (
     BudgetAllocationItem,
     BudgetRestockPlan,
@@ -52,8 +62,12 @@ __all__ = [
     "BudgetRestockPlan",
     "CSVImportResult",
     "CategoryProfitability",
+    "ChatMessage",
+    "ChatRole",
     "ConsistencyIssue",
     "ConsistencySeverity",
+    "ConsultantResponse",
+    "ConversationSession",
     "DataConsistencyReport",
     "ExistingProductPolicy",
     "HourlySalesBucket",
@@ -74,6 +88,7 @@ __all__ = [
     "ProductUpdate",
     "ProductWithInventory",
     "ProfitSortBy",
+    "ProviderTurnResult",
     "RestockRecommendation",
     "SaleItemInput",
     "SaleRecordWithProduct",
@@ -86,4 +101,7 @@ __all__ = [
     "StockAdjustmentCreate",
     "StockUrgency",
     "StoreProfitabilityReport",
+    "ToolCallRequest",
+    "ToolResultMessage",
+    "ToolSpec",
 ]
