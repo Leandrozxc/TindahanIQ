@@ -19,17 +19,17 @@ PageKey = Literal[
     "system_help",
 ]
 
-PAGE_ITEMS: tuple[tuple[PageKey, str], ...] = (
-    ("dashboard", "📊  Dashboard"),
-    ("ai_assistant", "🤖  AI Assistant"),
-    ("inventory", "📦  Inventory"),
-    ("sales_profit", "📈  Sales Analytics"),
-    ("pricing_sim", "🏷️  Pricing Simulator"),
-    ("upload_data", "📤  Upload Data"),
-    ("system_help", "⚙️  Settings & Help"),
+PAGE_ITEMS: tuple[tuple[PageKey, str, str], ...] = (
+    ("dashboard", "Dashboard", ":material/dashboard:"),
+    ("ai_assistant", "AI Assistant", ":material/smart_toy:"),
+    ("inventory", "Inventory", ":material/inventory_2:"),
+    ("sales_profit", "Sales Analytics", ":material/trending_up:"),
+    ("pricing_sim", "Pricing Simulator", ":material/sell:"),
+    ("upload_data", "Upload Data", ":material/upload_file:"),
+    ("system_help", "Settings & Help", ":material/settings:"),
 )
 
-VALID_PAGES: frozenset[str] = frozenset(key for key, _ in PAGE_ITEMS)
+VALID_PAGES: frozenset[str] = frozenset(key for key, _, _ in PAGE_ITEMS)
 
 
 def init_session_state(settings: AppSettings) -> None:

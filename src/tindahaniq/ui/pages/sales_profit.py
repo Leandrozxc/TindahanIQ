@@ -102,7 +102,7 @@ def render_sales_profit(ctx: AppContext) -> None:
 
     c_top, c_slow = st.columns(2, gap="medium")
     with c_top, st.container(border=True):
-        st.markdown(f"#### 🏆 Top {top_n} Best-Selling Products")
+        st.markdown(f"#### :material/emoji_events: Top {top_n} Best-Selling Products")
         if not sales_report.top_selling:
             st.caption("No unit sales recorded yet.")
         else:
@@ -114,7 +114,9 @@ def render_sales_profit(ctx: AppContext) -> None:
             )
 
     with c_slow, st.container(border=True):
-        st.markdown(f"#### 🐢 Slow-Moving & Zero-Sale Products (Bottom {top_n})")
+        st.markdown(
+            f"#### :material/hourglass_empty: Slow-Moving & Zero-Sale Products (Bottom {top_n})"
+        )
         if not sales_report.slow_moving:
             st.caption("No active products found.")
         else:

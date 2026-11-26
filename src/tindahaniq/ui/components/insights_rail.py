@@ -16,7 +16,7 @@ from tindahaniq.ui.theme import format_php, urgency_badge_html
 
 def render_business_insights_rail(ctx: AppContext, *, key_prefix: str = "rail") -> None:
     """Render Low Stock Alerts, Top-Selling Products, and Weekly Sales Trend cards."""
-    st.markdown("#### 📈 Business Insights  `Live Data`")
+    st.markdown("#### :material/insights: Business Insights  `Live Data`")
 
     intel = ctx.inventory_intel.analyze_inventory(
         lookback_days=int(st.session_state.get("lookback_days", 14)),
@@ -28,7 +28,7 @@ def render_business_insights_rail(ctx: AppContext, *, key_prefix: str = "rail") 
     low_items = [r for r in intel.recommendations if r.urgency != StockUrgency.HEALTHY]
     with st.container(border=True):
         header_l, header_r = st.columns([3, 2])
-        header_l.markdown("**🔴 Low Stock Alert**")
+        header_l.markdown("**:material/warning: Low Stock Alert**")
         header_r.caption(f"{intel.critical_count} of {len(low_items)} critical")
 
         if not low_items:
@@ -60,7 +60,7 @@ def render_business_insights_rail(ctx: AppContext, *, key_prefix: str = "rail") 
     # 2. Top-Selling Products Card
     with st.container(border=True):
         top_l, top_r = st.columns([3, 2])
-        top_l.markdown("**🏆 Top-Selling Products**")
+        top_l.markdown("**:material/emoji_events: Top-Selling Products**")
         top_r.caption(f"{sales_rep.effective_days}d window")
 
         if not sales_rep.top_selling:
@@ -91,7 +91,7 @@ def render_business_insights_rail(ctx: AppContext, *, key_prefix: str = "rail") 
             start=Decimal("0.00"),
         )
         tr_l, tr_r = st.columns([3, 2])
-        tr_l.markdown("**📊 Sales Trend**")
+        tr_l.markdown("**:material/bar_chart: Sales Trend**")
         tr_r.caption(f"{format_php(weekly_total)} total")
 
         if not recent_buckets:

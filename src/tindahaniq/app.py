@@ -15,7 +15,7 @@ def main() -> None:
     """Initialize configuration, logging, health probe, and render the TindahanIQ UI."""
     st.set_page_config(
         page_title="TindahanIQ — Smarter Business Decisions",
-        page_icon="🏪",
+        page_icon=":material/storefront:",
         layout="wide",
     )
 

@@ -21,7 +21,8 @@ def render_empty_store_onboarding(ctx: AppContext, *, key_prefix: str) -> None:
         col_upload, col_sample = st.columns(2)
         with col_upload:
             if st.button(
-                "📤 Upload Your Store CSV Files",
+                "Upload Your Store CSV Files",
+                icon=":material/upload_file:",
                 key=f"{key_prefix}_goto_upload",
                 type="primary",
                 width="stretch",
@@ -30,7 +31,8 @@ def render_empty_store_onboarding(ctx: AppContext, *, key_prefix: str) -> None:
                 st.rerun()
         with col_sample:
             if st.button(
-                "🏪 Load Sample Sari-Sari Store Dataset (Demo)",
+                "Load Sample Sari-Sari Store Dataset (Demo)",
+                icon=":material/storefront:",
                 key=f"{key_prefix}_load_sample",
                 width="stretch",
             ):

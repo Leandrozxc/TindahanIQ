@@ -24,7 +24,7 @@ def render_system_help(ctx: AppContext) -> None:
     col_pref, col_cons = st.columns(2, gap="medium")
 
     with col_pref, st.container(border=True):
-        st.markdown("#### 🏪 Session Store Preferences")
+        st.markdown("#### :material/storefront: Session Store Preferences")
         with st.form("session_preferences_form"):
             new_store = st.text_input(
                 "Store Display Name",
@@ -53,7 +53,7 @@ def render_system_help(ctx: AppContext) -> None:
                 st.rerun()
 
     with col_cons, st.container(border=True):
-        st.markdown("#### 🛡️ Data Consistency & Ledger Verification")
+        st.markdown("#### :material/verified_user: Data Consistency & Ledger Verification")
         consistency = ctx.consistency_service.verify_data_consistency()
         if consistency.is_consistent:
             st.success(
@@ -78,7 +78,7 @@ def render_system_help(ctx: AppContext) -> None:
             )
 
     with st.container(border=True):
-        st.markdown("#### 🩺 System & Environment Health")
+        st.markdown("#### :material/monitor_heart: System & Environment Health")
         report = run_health_checks(ctx.settings)
         st.table(
             [
@@ -92,7 +92,8 @@ def render_system_help(ctx: AppContext) -> None:
         )
 
     with st.expander(
-        "📖 Sari-Sari Store Financial Glossary & Important Scope Notes",
+        "Sari-Sari Store Financial Glossary & Important Scope Notes",
+        icon=":material/menu_book:",
         expanded=True,
     ):
         st.markdown(
@@ -115,7 +116,11 @@ def render_system_help(ctx: AppContext) -> None:
             )
         )
 
-    with st.expander("⚠️ Reset / Clear Store Database", expanded=False):
+    with st.expander(
+        "Reset / Clear Store Database",
+        icon=":material/warning:",
+        expanded=False,
+    ):
         st.caption(
             "Use this to wipe all products, inventory, sales transactions, and CSV import "
             "history (for example, before switching between demo datasets)."
@@ -125,7 +130,8 @@ def render_system_help(ctx: AppContext) -> None:
             key="confirm_reset_store_chk",
         )
         if st.button(
-            "🗑 Clear All Store Data",
+            "Clear All Store Data",
+            icon=":material/delete_forever:",
             disabled=not confirm_reset,
             key="reset_store_data_btn",
         ):

@@ -49,7 +49,8 @@ def render_upload_data(ctx: AppContext) -> None:
             width="stretch",
         )
         if t_col3.button(
-            "🏪 Load Baseline Sample (10 Items)",
+            "Load Baseline Sample (10 Items)",
+            icon=":material/storefront:",
             width="stretch",
             key="upload_load_sample_btn",
         ):
@@ -62,7 +63,8 @@ def render_upload_data(ctx: AppContext) -> None:
             except Exception as exc:
                 st.error(get_user_safe_message(exc))
         if t_col4.button(
-            "📊 Load 14-Day Demo (18 Items)",
+            "Load 14-Day Demo (18 Items)",
+            icon=":material/analytics:",
             width="stretch",
             key="upload_load_demo14d_btn",
         ):
@@ -75,7 +77,12 @@ def render_upload_data(ctx: AppContext) -> None:
             except Exception as exc:
                 st.error(get_user_safe_message(exc))
 
-    tab_inv, tab_sales = st.tabs(["📦 1. Upload Inventory CSV", "🧾 2. Upload Sales CSV"])
+    tab_inv, tab_sales = st.tabs(
+        [
+            ":material/inventory_2: 1. Upload Inventory CSV",
+            ":material/receipt_long: 2. Upload Sales CSV",
+        ]
+    )
 
     with tab_inv, st.container(border=True):
         st.markdown("#### Upload Product Inventory CSV")

@@ -3,29 +3,42 @@
 from __future__ import annotations
 
 import streamlit as st
+import streamlit_shadcn_ui as ui
 
 from tindahaniq.exceptions import get_user_safe_message
 from tindahaniq.ui.components import render_business_insights_rail, render_top_kpi_strip
 from tindahaniq.ui.context import AppContext
 from tindahaniq.ui.state import get_chat_session
 
-SUGGESTED_ACTIONS: tuple[tuple[str, str], ...] = (
-    ("⚡ Analyze My Profits", "Which of my products generates the highest profit and margin?"),
-    ("⚠️ Check Low Stock Items", "Which low-stock products should I prioritize for restocking?"),
+SUGGESTED_ACTIONS: tuple[tuple[str, str, str], ...] = (
     (
-        "📈 Review Sales Performance",
+        "Analyze My Profits",
+        ":material/bolt:",
+        "Which of my products generates the highest profit and margin?",
+    ),
+    (
+        "Check Low Stock Items",
+        ":material/warning:",
+        "Which low-stock products should I prioritize for restocking?",
+    ),
+    (
+        "Review Sales Performance",
+        ":material/trending_up:",
         "Can you summarize my sales performance and identify any slow-moving products?",
     ),
     (
-        "💰 Plan ₱2,000 Restock",
+        "Plan ₱2,000 Restock",
+        ":material/payments:",
         "I have ₱2,000 available for restocking. Which products should I prioritize?",
     ),
     (
-        "🏷️ Simulate Product Pricing",
+        "Simulate Product Pricing",
+        ":material/sell:",
         "What happens to my profit if I increase the price of my top product by ₱2?",
     ),
     (
-        "🏪 Store Health Overview",
+        "Store Health Overview",
+        ":material/storefront:",
         "Give me an overall summary of my store's revenue, profit, and stock health.",
     ),
 )
@@ -49,14 +62,24 @@ def render_ai_assistant(ctx: AppContext) -> None:
 
         head_title, head_export, head_clear = st.columns([5, 2, 2])
         with head_title:
-            badge_text = "🟢 Online & Ready" if ai_ready else "🟠 API Key Needed"
-            st.markdown(f"#### 🤖 TindahanIQ AI Assistant  `{badge_text}`")
+            st.markdown("#### :material/smart_toy: TindahanIQ AI Assistant")
+            ui.badges(
+                [
+                    (
+                        "Online & Ready" if ai_ready else "API Key Needed",
+                        "default" if ai_ready else "destructive",
+                    )
+                ],
+                key="ai_status_badge",
+            )
+            backend_label = "Turso (libSQL)" if ctx.db.is_turso else "local SQLite"
             st.caption(
-                f"Connected to local SQLite store records • Model `{ctx.settings.openai_model}`"
+                f"Connected to {backend_label} store records • Model `{ctx.settings.openai_model}`"
             )
         with head_export:
             st.download_button(
-                label="⬇ Export Chat",
+                label="Export Chat",
+                icon=":material/download:",
                 data=session.export_markdown().encode("utf-8"),
                 file_name="tindahaniq_consultation.md",
                 mime="text/markdown",
@@ -64,7 +87,12 @@ def render_ai_assistant(ctx: AppContext) -> None:
                 key="ai_export_chat_btn",
             )
         with head_clear:
-            if st.button("🗑 Clear History", width="stretch", key="ai_clear_btn"):
+            if st.button(
+                "Clear History",
+                icon=":material/delete:",
+                width="stretch",
+                key="ai_clear_btn",
+            ):
                 session.clear()
                 st.rerun()
 
@@ -107,12 +135,17 @@ def render_ai_assistant(ctx: AppContext) -> None:
                         tools_label = ", ".join(f"`{name}`" for name in msg.tools_used)
                         st.caption(f"Calculated via deterministic tools: {tools_label}")
 
-        with st.expander("⚡ Suggested Actions", expanded=not session.messages):
+        with st.expander(
+            "Suggested Actions",
+            icon=":material/bolt:",
+            expanded=not session.messages,
+        ):
             chip_cols = st.columns(3, gap="small")
-            for idx, (chip_label, chip_prompt) in enumerate(SUGGESTED_ACTIONS):
+            for idx, (chip_label, chip_icon, chip_prompt) in enumerate(SUGGESTED_ACTIONS):
                 target_col = chip_cols[idx % 3]
                 if target_col.button(
                     chip_label,
+                    icon=chip_icon,
                     key=f"ai_chip_{idx}",
                     disabled=not ai_ready,
                     width="stretch",
@@ -143,7 +176,7 @@ def render_ai_assistant(ctx: AppContext) -> None:
                         st.error(get_user_safe_message(exc))
 
         st.caption(
-            "🔒 TindahanIQ calculates figures strictly from your local store database. "
+            ":material/lock: TindahanIQ calculates figures strictly from your store database. "
             "It does not execute supplier purchases, access banking accounts, or guarantee "
             "future sales."
         )

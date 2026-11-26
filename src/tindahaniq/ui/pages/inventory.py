@@ -34,10 +34,10 @@ def render_inventory(ctx: AppContext) -> None:
 
     tab_intel, tab_budget, tab_ops, tab_catalog = st.tabs(
         [
-            "📦 Stock & Restock Intelligence",
-            "💰 Budget Restock Planner",
-            "🛒 Record Sale / Adjust Stock",
-            "➕ Manage Catalog & Audit Log",
+            ":material/inventory_2: Stock & Restock Intelligence",
+            ":material/payments: Budget Restock Planner",
+            ":material/point_of_sale: Record Sale / Adjust Stock",
+            ":material/add_box: Manage Catalog & Audit Log",
         ]
     )
 
@@ -254,7 +254,7 @@ def _render_operations_tab(ctx: AppContext) -> None:
     col_sale, col_adj = st.columns(2, gap="medium")
 
     with col_sale, st.container(border=True):
-        st.markdown("#### 🛒 Record Walk-In Sale")
+        st.markdown("#### :material/point_of_sale: Record Walk-In Sale")
         st.caption("Atomically records revenue/COGS and deducts shelf stock.")
         with st.form("record_walkin_sale_form", clear_on_submit=True):
             chosen_sale_label = st.selectbox("Product", labels, key="pos_prod_sel")
@@ -288,7 +288,7 @@ def _render_operations_tab(ctx: AppContext) -> None:
                     st.error(get_user_safe_message(exc))
 
     with col_adj, st.container(border=True):
-        st.markdown("#### 📋 Restock or Adjust Stock")
+        st.markdown("#### :material/assignment: Restock or Adjust Stock")
         st.caption("Log incoming supplier restocks, damaged/spoiled goods, or physical counts.")
         with st.form("stock_adjustment_form", clear_on_submit=True):
             chosen_adj_label = st.selectbox("Product", labels, key="adj_prod_sel")
@@ -337,7 +337,7 @@ def _render_catalog_and_audit_tab(ctx: AppContext) -> None:
     col_add, col_edit = st.columns(2, gap="medium")
 
     with col_add, st.container(border=True):
-        st.markdown("#### ➕ Add New Product")
+        st.markdown("#### :material/add_circle: Add New Product")
         with st.form("add_product_form", clear_on_submit=True):
             p_name = st.text_input(
                 "Product Name *",
@@ -379,7 +379,7 @@ def _render_catalog_and_audit_tab(ctx: AppContext) -> None:
                     st.error(get_user_safe_message(exc))
 
     with col_edit, st.container(border=True):
-        st.markdown("#### ✏️ Update Price / Archive Product")
+        st.markdown("#### :material/edit: Update Price / Archive Product")
         all_items = ctx.inventory_service.list_inventory(active_only=False)
         if not all_items:
             st.caption("No catalog products available to edit yet.")
@@ -438,7 +438,7 @@ def _render_catalog_and_audit_tab(ctx: AppContext) -> None:
                     set_flash_success(f"Reactivated `{sel_item.product.name}`.")
                     st.rerun()
 
-    st.markdown("#### 📜 Recent Stock Adjustment Audit Log")
+    st.markdown("#### :material/history: Recent Stock Adjustment Audit Log")
     adjustments = list(reversed(ctx.inventory_service.get_adjustment_history(limit=25)))
     if not adjustments:
         st.caption("No stock adjustments logged yet.")

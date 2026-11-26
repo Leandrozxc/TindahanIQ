@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import streamlit as st
+import streamlit_antd_components as sac
 
 from tindahaniq.ui.components import (
     build_category_profit_chart,
@@ -57,14 +58,20 @@ def render_dashboard(ctx: AppContext) -> None:
                     key="dash_cat_profit_chart",
                 )
 
+        sac.divider(label="Quick Actions", icon="lightning-charge", align="left", color="gray")
         qa_1, qa_2, qa_3 = st.columns(3)
-        if qa_1.button("🤖 Ask AI Consultant", width="stretch", type="primary"):
+        if qa_1.button(
+            "Ask AI Consultant",
+            icon=":material/smart_toy:",
+            width="stretch",
+            type="primary",
+        ):
             navigate_to("ai_assistant")
             st.rerun()
-        if qa_2.button("💰 Budget Restock Planner", width="stretch"):
+        if qa_2.button("Budget Restock Planner", icon=":material/payments:", width="stretch"):
             navigate_to("inventory")
             st.rerun()
-        if qa_3.button("🏷️ Simulate Product Pricing", width="stretch"):
+        if qa_3.button("Simulate Product Pricing", icon=":material/sell:", width="stretch"):
             navigate_to("pricing_sim")
             st.rerun()
 

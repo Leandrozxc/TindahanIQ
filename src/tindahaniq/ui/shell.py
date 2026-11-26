@@ -49,10 +49,11 @@ def render_sidebar(ctx: AppContext) -> None:
         st.caption("Smarter Business Decisions.")
         st.divider()
 
-        for page_key, label in PAGE_ITEMS:
+        for page_key, label, icon in PAGE_ITEMS:
             is_current = page_key == active_page
             if st.button(
                 label,
+                icon=icon,
                 key=f"nav_{page_key}",
                 type="primary" if is_current else "secondary",
                 width="stretch",
@@ -61,7 +62,7 @@ def render_sidebar(ctx: AppContext) -> None:
                 st.rerun()
 
         st.divider()
-        st.markdown(f"**🏪 {store_display}**")
+        st.markdown(f"**:material/storefront: {store_display}**")
         st.caption(
             f"Currency: {ctx.settings.currency_symbol} ({ctx.settings.currency_code}) "
             f"• v{__version__}"
