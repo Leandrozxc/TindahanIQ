@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from tindahaniq.ai import AIConsultantService
 from tindahaniq.config import PROJECT_ROOT, AppSettings
@@ -39,13 +40,31 @@ class AppContext:
         """Return True when the store catalog has at least one active product."""
         return len(self.inventory_service.list_inventory(active_only=True)) > 0
 
-    def load_sample_store_data(self) -> tuple[int, int]:
-        """Load the bundled sample sari-sari store inventory and sales CSVs."""
-        inv_path = PROJECT_ROOT / "data" / "samples" / "sample_inventory.csv"
-        sales_path = PROJECT_ROOT / "data" / "samples" / "sample_sales.csv"
+    def load_sample_store_data(
+        self,
+        dataset: Literal["baseline", "demo_14d"] = "baseline",
+    ) -> tuple[int, int]:
+        """Load a bundled sample sari-sari store inventory and sales CSV pair."""
+        if dataset == "demo_14d":
+            inv_name = "demo_sari_sari_inventory.csv"
+            sales_name = "demo_sari_sari_sales_14d.csv"
+        else:
+            inv_name = "sample_inventory.csv"
+            sales_name = "sample_sales.csv"
+        inv_path = PROJECT_ROOT / "data" / "samples" / inv_name
+        sales_path = PROJECT_ROOT / "data" / "samples" / sales_name
         inv_res = self.csv_importer.import_inventory_csv(inv_path, allow_reimport=True)
         sales_res = self.csv_importer.import_sales_csv(sales_path, allow_reimport=True)
         return inv_res.rows_accepted, sales_res.rows_accepted
+
+    def reset_store_data(self) -> None:
+        """Delete all store products, inventory, sales, adjustments, and import history."""
+        with self.db.transaction() as conn:
+            conn.execute("DELETE FROM sales_transactions;")
+            conn.execute("DELETE FROM inventory_adjustments;")
+            conn.execute("DELETE FROM import_batches;")
+            conn.execute("DELETE FROM inventory;")
+            conn.execute("DELETE FROM products;")
 
 
 def build_app_context(

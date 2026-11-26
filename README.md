@@ -1,7 +1,7 @@
 # TindahanIQ: An AI-Powered Business Assistant for Small Retailers
 
 **Course project:** CS365-F1 Final Project  
-**Authors / Instructor:** _(add team members and instructor names here before submission)_
+**Authors / Instructor:** Alegarbes, Duff Daren; Endrina, Arth Andrey C.; Macadangdang, Yoji C.; Pabatao, Leandro Miguel A.; Racaza, Psalm Elly • Instructor: Jun Albert S. Pardillo
 
 ---
 
@@ -37,7 +37,7 @@
 | **Validation & Config** | Pydantic v2 + `pydantic-settings` | Strict domain schemas, CSV validation & `SecretStr` key masking |
 | **Data & CSV** | Pandas (`>=2.2`) | CSV encoding/header normalization & tabular display |
 | **Visualization** | Plotly (`>=5.24`) | Interactive `₱`-formatted trend, category & simulation charts |
-| **AI Integration** | Google GenAI SDK (`google-genai`) | `gemini-2.5-flash` native function/tool calling |
+| **AI Integration** | Google GenAI SDK (`google-genai`) | `gemini-3.5-flash-lite` native function/tool calling |
 | **Quality & Tests** | `pytest`, `pytest-cov`, `ruff`, `AppTest` | Unit, integration, UI workflow, security & performance verification |
 
 ---
@@ -88,7 +88,7 @@ CURRENCY_SYMBOL=₱
 CURRENCY_CODE=PHP
 DATABASE_PATH=data/tindahaniq.db
 GEMINI_API_KEY=your_google_ai_studio_api_key_here
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
 > **Note:** Never commit `.env` to Git. All non-AI modules (Dashboard, Inventory & Budget Planner, Sales & Profitability Analytics, Pricing Simulator, and CSV Upload) work 100% offline even without an API key.

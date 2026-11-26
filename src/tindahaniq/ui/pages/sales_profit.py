@@ -12,7 +12,13 @@ from tindahaniq.ui.components import (
     render_empty_store_onboarding,
 )
 from tindahaniq.ui.context import AppContext
-from tindahaniq.ui.theme import AMBER_WARN, EMERALD_PRIMARY, format_pct, format_php
+from tindahaniq.ui.theme import (
+    AMBER_WARN,
+    EMERALD_PRIMARY,
+    format_manila_dt,
+    format_pct,
+    format_php,
+)
 
 
 def render_sales_profit(ctx: AppContext) -> None:
@@ -72,7 +78,7 @@ def render_sales_profit(ctx: AppContext) -> None:
         else:
             st.plotly_chart(
                 build_revenue_profit_trend_chart(sales_report.buckets),
-                use_container_width=True,
+                width="stretch",
                 config={"displayModeBar": False},
                 key="sp_trend_chart",
             )
@@ -89,7 +95,7 @@ def render_sales_profit(ctx: AppContext) -> None:
         else:
             st.plotly_chart(
                 build_category_profit_chart(prof_report.categories),
-                use_container_width=True,
+                width="stretch",
                 config={"displayModeBar": False},
                 key="sp_cat_chart",
             )
@@ -102,7 +108,7 @@ def render_sales_profit(ctx: AppContext) -> None:
         else:
             st.plotly_chart(
                 build_product_ranking_chart(sales_report.top_selling, color=EMERALD_PRIMARY),
-                use_container_width=True,
+                width="stretch",
                 config={"displayModeBar": False},
                 key="sp_top_chart",
             )
@@ -127,7 +133,7 @@ def render_sales_profit(ctx: AppContext) -> None:
                 }
                 for p in sales_report.slow_moving
             ]
-            st.dataframe(slow_rows, use_container_width=True, hide_index=True)
+            st.dataframe(slow_rows, width="stretch", hide_index=True)
             if any(p.units_sold == 0 for p in sales_report.slow_moving):
                 st.caption(
                     "Tip: Items with 0 sales tie up working capital — consider bundling or "
@@ -136,7 +142,7 @@ def render_sales_profit(ctx: AppContext) -> None:
             else:
                 st.plotly_chart(
                     build_product_ranking_chart(sales_report.slow_moving, color=AMBER_WARN),
-                    use_container_width=True,
+                    width="stretch",
                     config={"displayModeBar": False},
                     key="sp_slow_chart",
                 )
@@ -159,7 +165,7 @@ def render_sales_profit(ctx: AppContext) -> None:
         }
         for p in prof_report.products
     ]
-    st.dataframe(prof_rows, use_container_width=True, hide_index=True)
+    st.dataframe(prof_rows, width="stretch", hide_index=True)
 
     with st.expander("Recent Sales Transactions Log"):
         recent_tx = ctx.sales_service.get_sales_history(limit=30)
@@ -168,7 +174,7 @@ def render_sales_profit(ctx: AppContext) -> None:
         else:
             tx_rows = [
                 {
-                    "Sold At (UTC)": f"{r.sale.sold_at:%Y-%m-%d %H:%M}",
+                    "Sold At (PHT)": format_manila_dt(r.sale.sold_at),
                     "Ref": r.sale.external_ref or "—",
                     "SKU": r.sku,
                     "Product": r.product_name,
@@ -179,4 +185,4 @@ def render_sales_profit(ctx: AppContext) -> None:
                 }
                 for r in recent_tx
             ]
-            st.dataframe(tx_rows, use_container_width=True, hide_index=True)
+            st.dataframe(tx_rows, width="stretch", hide_index=True)

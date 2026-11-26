@@ -197,6 +197,7 @@ def _parse_gemini_response(response: Any) -> ProviderTurnResult:
 def _translate_gemini_api_error(exc: genai_errors.APIError) -> AIServiceError:
     code = getattr(exc, "code", None)
     status_str = str(getattr(exc, "status", "") or "").upper()
+    message_str = str(getattr(exc, "message", "") or "").upper()
 
     if code == 429 or "RESOURCE_EXHAUSTED" in status_str:
         return AIServiceError(
@@ -211,12 +212,24 @@ def _translate_gemini_api_error(exc: genai_errors.APIError) -> AIServiceError:
         "API_KEY" in status_str
         or "PERMISSION_DENIED" in status_str
         or "UNAUTHENTICATED" in status_str
+        or "API KEY" in message_str
+        or "API_KEY" in message_str
     ):
         return AIServiceError(
             f"Gemini authentication/key error (code={code})",
             user_message=(
                 "Your `GEMINI_API_KEY` was rejected by Google Gemini. "
                 "Please check the key in your `.env` file."
+            ),
+            details={"status_code": code},
+        )
+    if code == 404 or "NOT_FOUND" in status_str:
+        return AIServiceError(
+            f"Gemini model not found/unavailable (code={code}, status={status_str})",
+            user_message=(
+                "The configured `GEMINI_MODEL` is unavailable or not supported for your API key. "
+                "Update `GEMINI_MODEL` in your `.env` file (for example, `gemini-3.5-flash-lite`) "
+                "and restart the app."
             ),
             details={"status_code": code},
         )

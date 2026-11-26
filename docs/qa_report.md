@@ -2,8 +2,8 @@
 
 ## 1. Executive Quality Summary
 
-- **Overall Status:** **PASSED** (`90` automated tests passing, `0` failures, `0` warnings, **92%** overall line coverage across `3,575` statements).
-- **Linter & Formatting (`ruff`):** `0` errors across `84` tracked Python source and test files.
+- **Overall Status:** **PASSED** (`94` automated tests passing, `0` failures, **92%** overall line coverage across `3,618` statements).
+- **Linter & Formatting (`ruff`):** `0` errors across `86` tracked Python source and test files.
 - **Data & Mathematical Integrity:** 100% deterministic `Decimal` arithmetic reconciled across product, category, store, and daily/weekly/monthly time-series aggregations, plus ledger conservation (`current_stock == SUM(inventory_adjustments.quantity_delta)`).
 
 ---

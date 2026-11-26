@@ -55,7 +55,7 @@ def render_sidebar(ctx: AppContext) -> None:
                 label,
                 key=f"nav_{page_key}",
                 type="primary" if is_current else "secondary",
-                use_container_width=True,
+                width="stretch",
             ):
                 navigate_to(page_key)
                 st.rerun()

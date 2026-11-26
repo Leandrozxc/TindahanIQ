@@ -40,7 +40,7 @@ def render_dashboard(ctx: AppContext) -> None:
             else:
                 st.plotly_chart(
                     build_revenue_profit_trend_chart(sales_rep.buckets),
-                    use_container_width=True,
+                    width="stretch",
                     config={"displayModeBar": False},
                     key="dash_rev_profit_chart",
                 )
@@ -52,19 +52,19 @@ def render_dashboard(ctx: AppContext) -> None:
             else:
                 st.plotly_chart(
                     build_category_profit_chart(prof_rep.categories),
-                    use_container_width=True,
+                    width="stretch",
                     config={"displayModeBar": False},
                     key="dash_cat_profit_chart",
                 )
 
         qa_1, qa_2, qa_3 = st.columns(3)
-        if qa_1.button("🤖 Ask AI Consultant", use_container_width=True, type="primary"):
+        if qa_1.button("🤖 Ask AI Consultant", width="stretch", type="primary"):
             navigate_to("ai_assistant")
             st.rerun()
-        if qa_2.button("💰 Budget Restock Planner", use_container_width=True):
+        if qa_2.button("💰 Budget Restock Planner", width="stretch"):
             navigate_to("inventory")
             st.rerun()
-        if qa_3.button("🏷️ Simulate Product Pricing", use_container_width=True):
+        if qa_3.button("🏷️ Simulate Product Pricing", width="stretch"):
             navigate_to("pricing_sim")
             st.rerun()
 

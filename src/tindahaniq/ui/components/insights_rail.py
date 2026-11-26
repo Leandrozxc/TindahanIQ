@@ -52,7 +52,7 @@ def render_business_insights_rail(ctx: AppContext, *, key_prefix: str = "rail") 
             if st.button(
                 f"View all {len(low_items)} low-stock items →",
                 key=f"{key_prefix}_view_low_stock",
-                use_container_width=True,
+                width="stretch",
             ):
                 navigate_to("inventory")
                 st.rerun()
@@ -100,7 +100,7 @@ def render_business_insights_rail(ctx: AppContext, *, key_prefix: str = "rail") 
             fig = build_weekly_sales_bar_chart(recent_buckets)
             st.plotly_chart(
                 fig,
-                use_container_width=True,
+                width="stretch",
                 config={"displayModeBar": False},
                 key=f"{key_prefix}_weekly_chart",
             )

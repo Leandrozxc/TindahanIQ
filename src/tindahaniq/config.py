@@ -38,7 +38,7 @@ class AppSettings(BaseSettings):
     database_path: Path = Field(default=Path("data/tindahaniq.db"))
 
     gemini_api_key: SecretStr | None = Field(default=None)
-    gemini_model: str = Field(default="gemini-2.5-flash", min_length=1, max_length=100)
+    gemini_model: str = Field(default="gemini-3.5-flash-lite", min_length=1, max_length=100)
 
     @field_validator("app_env", mode="before")
     @classmethod

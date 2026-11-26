@@ -20,7 +20,7 @@ from tindahaniq.models import (
 from tindahaniq.ui.components import render_empty_store_onboarding
 from tindahaniq.ui.context import AppContext
 from tindahaniq.ui.state import set_flash_success
-from tindahaniq.ui.theme import format_php
+from tindahaniq.ui.theme import format_manila_dt, format_php
 from tindahaniq.utils import escape_csv_formula
 
 
@@ -128,7 +128,7 @@ def _render_stock_intelligence_tab(ctx: AppContext) -> None:
             }
             for r in filtered
         ]
-        st.dataframe(rows, use_container_width=True, hide_index=True)
+        st.dataframe(rows, width="stretch", hide_index=True)
 
     with st.expander("Calculation Window & Assumptions"):
         for note in report.assumptions:
@@ -204,7 +204,7 @@ def _render_budget_planner_tab(ctx: AppContext) -> None:
             }
             for item in plan.funded_items
         ]
-        st.dataframe(funded_rows, use_container_width=True, hide_index=True)
+        st.dataframe(funded_rows, width="stretch", hide_index=True)
 
         csv_buf = io.StringIO()
         writer = csv.DictWriter(csv_buf, fieldnames=list(funded_rows[0].keys()))
@@ -233,7 +233,7 @@ def _render_budget_planner_tab(ctx: AppContext) -> None:
                 }
                 for i in plan.deferred_items
             ]
-            st.dataframe(def_rows, use_container_width=True, hide_index=True)
+            st.dataframe(def_rows, width="stretch", hide_index=True)
 
 
 def _render_operations_tab(ctx: AppContext) -> None:
@@ -449,7 +449,7 @@ def _render_catalog_and_audit_tab(ctx: AppContext) -> None:
         }
         adj_rows = [
             {
-                "Timestamp (UTC)": f"{a.created_at:%Y-%m-%d %H:%M}",
+                "Timestamp (PHT)": format_manila_dt(a.created_at),
                 "Product": id_to_sku.get(a.product_id, f"#{a.product_id}"),
                 "Delta": f"{a.quantity_delta:+d}",
                 "Reason": a.reason.value,
@@ -457,4 +457,4 @@ def _render_catalog_and_audit_tab(ctx: AppContext) -> None:
             }
             for a in adjustments
         ]
-        st.dataframe(adj_rows, use_container_width=True, hide_index=True)
+        st.dataframe(adj_rows, width="stretch", hide_index=True)

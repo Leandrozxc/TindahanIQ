@@ -9,6 +9,7 @@ from tindahaniq.exceptions import get_user_safe_message
 from tindahaniq.models import CSVImportResult, ExistingProductPolicy
 from tindahaniq.ui.context import AppContext
 from tindahaniq.ui.state import set_flash_success
+from tindahaniq.ui.theme import format_manila_dt
 
 INVENTORY_TEMPLATE_CSV = (
     "sku,product_name,category,unit,unit_cost,selling_price,current_stock,reorder_point,lead_time_days\n"
@@ -32,30 +33,43 @@ def render_upload_data(ctx: AppContext) -> None:
     )
 
     with st.container(border=True):
-        t_col1, t_col2, t_col3 = st.columns(3)
+        t_col1, t_col2, t_col3, t_col4 = st.columns(4)
         t_col1.download_button(
             "⬇ Inventory CSV Template",
             data=INVENTORY_TEMPLATE_CSV.encode("utf-8"),
             file_name="tindahaniq_inventory_template.csv",
             mime="text/csv",
-            use_container_width=True,
+            width="stretch",
         )
         t_col2.download_button(
             "⬇ Sales CSV Template",
             data=SALES_TEMPLATE_CSV.encode("utf-8"),
             file_name="tindahaniq_sales_template.csv",
             mime="text/csv",
-            use_container_width=True,
+            width="stretch",
         )
         if t_col3.button(
-            "🏪 Load Sample Sari-Sari Store Dataset",
-            use_container_width=True,
+            "🏪 Load Baseline Sample (10 Items)",
+            width="stretch",
             key="upload_load_sample_btn",
         ):
             try:
-                inv_cnt, sales_cnt = ctx.load_sample_store_data()
+                inv_cnt, sales_cnt = ctx.load_sample_store_data("baseline")
                 set_flash_success(
-                    f"Loaded sample demo dataset ({inv_cnt} products, {sales_cnt} sales)."
+                    f"Loaded baseline sample dataset ({inv_cnt} products, {sales_cnt} sales)."
+                )
+                st.rerun()
+            except Exception as exc:
+                st.error(get_user_safe_message(exc))
+        if t_col4.button(
+            "📊 Load 14-Day Demo (18 Items)",
+            width="stretch",
+            key="upload_load_demo14d_btn",
+        ):
+            try:
+                inv_cnt, sales_cnt = ctx.load_sample_store_data("demo_14d")
+                set_flash_success(
+                    f"Loaded 14-day demo dataset ({inv_cnt} products, {sales_cnt} sales)."
                 )
                 st.rerun()
             except Exception as exc:
@@ -138,7 +152,7 @@ def render_upload_data(ctx: AppContext) -> None:
     else:
         batch_rows = [
             {
-                "Imported At (UTC)": f"{b.imported_at:%Y-%m-%d %H:%M}",
+                "Imported At (PHT)": format_manila_dt(b.imported_at),
                 "Type": b.import_type.value,
                 "Filename": b.filename,
                 "Total Rows": b.rows_total,
@@ -148,7 +162,7 @@ def render_upload_data(ctx: AppContext) -> None:
             }
             for b in batches[:15]
         ]
-        st.dataframe(batch_rows, use_container_width=True, hide_index=True)
+        st.dataframe(batch_rows, width="stretch", hide_index=True)
 
 
 def _render_import_result(res: CSVImportResult) -> None:
@@ -176,7 +190,7 @@ def _render_import_result(res: CSVImportResult) -> None:
                 {"CSV Line": w.row_number, "Field": w.field, "Warning": w.message}
                 for w in res.warnings
             ],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -192,6 +206,6 @@ def _render_import_result(res: CSVImportResult) -> None:
                 }
                 for e in res.errors
             ],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )

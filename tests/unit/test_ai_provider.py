@@ -130,3 +130,46 @@ def test_gemini_provider_maps_rate_limit_and_empty_candidates(isolated_env: Path
             system_instruction="sys",
             tools=(),
         )
+
+
+def test_gemini_provider_maps_model_not_found_and_invalid_api_key(isolated_env: Path) -> None:
+    settings = load_settings(env_file=None)
+    not_found_err = genai_errors.ClientError(
+        404,
+        {
+            "error": {
+                "code": 404,
+                "status": "NOT_FOUND",
+                "message": "This model models/gemini-2.5-flash is no longer available.",
+            }
+        },
+    )
+    bad_key_err = genai_errors.ClientError(
+        400,
+        {
+            "error": {
+                "code": 400,
+                "status": "INVALID_ARGUMENT",
+                "message": "API key not valid. Please pass a valid API key.",
+            }
+        },
+    )
+    provider = GeminiProvider(settings, client=_FakeGenAIClient([not_found_err, bad_key_err]))
+
+    with pytest.raises(AIServiceError) as exc_404:
+        provider.generate_turn(
+            conversation=[ChatMessage(role="user", content="Hi")],
+            current_turn_steps=(),
+            system_instruction="sys",
+            tools=(),
+        )
+    assert "gemini_model" in exc_404.value.user_message.lower()
+
+    with pytest.raises(AIServiceError) as exc_400:
+        provider.generate_turn(
+            conversation=[ChatMessage(role="user", content="Hi")],
+            current_turn_steps=(),
+            system_instruction="sys",
+            tools=(),
+        )
+    assert "gemini_api_key" in exc_400.value.user_message.lower()

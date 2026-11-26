@@ -20,6 +20,14 @@ SUGGESTED_ACTIONS: tuple[tuple[str, str], ...] = (
         "💰 Plan ₱2,000 Restock",
         "I have ₱2,000 available for restocking. Which products should I prioritize?",
     ),
+    (
+        "🏷️ Simulate Product Pricing",
+        "What happens to my profit if I increase the price of my top product by ₱2?",
+    ),
+    (
+        "🏪 Store Health Overview",
+        "Give me an overall summary of my store's revenue, profit, and stock health.",
+    ),
 )
 
 
@@ -52,11 +60,11 @@ def render_ai_assistant(ctx: AppContext) -> None:
                 data=session.export_markdown().encode("utf-8"),
                 file_name="tindahaniq_consultation.md",
                 mime="text/markdown",
-                use_container_width=True,
+                width="stretch",
                 key="ai_export_chat_btn",
             )
         with head_clear:
-            if st.button("🗑 Clear History", use_container_width=True, key="ai_clear_btn"):
+            if st.button("🗑 Clear History", width="stretch", key="ai_clear_btn"):
                 session.clear()
                 st.rerun()
 
@@ -70,43 +78,46 @@ def render_ai_assistant(ctx: AppContext) -> None:
             )
 
         active_count = len(ctx.inventory_service.list_inventory(active_only=True))
-        if not session.messages:
-            with st.chat_message("assistant"):
-                store_name = str(
-                    st.session_state.get("store_display_name", ctx.settings.store_name)
-                )
-                if active_count == 0:
-                    st.markdown(
-                        f"Kumusta! Welcome to **TindahanIQ** for **{store_name}**. "
-                        "Your store catalog is currently empty — upload your Inventory and Sales "
-                        "CSV files (or load the sample store dataset) so I can analyze your "
-                        "profits, restocking needs, and pricing scenarios."
+        chat_history_box = st.container(height=420, border=False)
+        with chat_history_box:
+            if not session.messages:
+                with st.chat_message("assistant"):
+                    store_name = str(
+                        st.session_state.get("store_display_name", ctx.settings.store_name)
                     )
-                else:
-                    st.markdown(
-                        f"Kumusta! Welcome to **TindahanIQ**. I am connected to **{store_name}** "
-                        f"({active_count} active products). Ask me about your most profitable "
-                        "items, restocking quantities, slow movers, or price change simulations!"
-                    )
+                    if active_count == 0:
+                        st.markdown(
+                            f"Kumusta! Welcome to **TindahanIQ** for **{store_name}**. "
+                            "Your store catalog is currently empty — upload your Inventory and "
+                            "Sales CSV files (or load the sample store dataset) so I can analyze "
+                            "your profits, restocking needs, and pricing scenarios."
+                        )
+                    else:
+                        st.markdown(
+                            f"Kumusta! Welcome to **TindahanIQ**. I am connected to "
+                            f"**{store_name}** ({active_count} active products). Ask me about your "
+                            "most profitable items, restocking quantities, slow movers, or price "
+                            "change simulations!"
+                        )
 
-        for msg in session.messages:
-            with st.chat_message(msg.role):
-                st.markdown(msg.content)
-                if msg.role == "assistant" and msg.tools_used:
-                    tools_label = ", ".join(f"`{name}`" for name in msg.tools_used)
-                    st.caption(f"Calculated via deterministic tools: {tools_label}")
+            for msg in session.messages:
+                with st.chat_message(msg.role):
+                    st.markdown(msg.content)
+                    if msg.role == "assistant" and msg.tools_used:
+                        tools_label = ", ".join(f"`{name}`" for name in msg.tools_used)
+                        st.caption(f"Calculated via deterministic tools: {tools_label}")
 
-        st.markdown("**SUGGESTED ACTIONS**")
-        chip_cols = st.columns(2)
-        for idx, (chip_label, chip_prompt) in enumerate(SUGGESTED_ACTIONS):
-            target_col = chip_cols[idx % 2]
-            if target_col.button(
-                chip_label,
-                key=f"ai_chip_{idx}",
-                disabled=not ai_ready,
-                use_container_width=True,
-            ):
-                st.session_state["pending_ai_prompt"] = chip_prompt
+        with st.expander("⚡ Suggested Actions", expanded=not session.messages):
+            chip_cols = st.columns(3, gap="small")
+            for idx, (chip_label, chip_prompt) in enumerate(SUGGESTED_ACTIONS):
+                target_col = chip_cols[idx % 3]
+                if target_col.button(
+                    chip_label,
+                    key=f"ai_chip_{idx}",
+                    disabled=not ai_ready,
+                    width="stretch",
+                ):
+                    st.session_state["pending_ai_prompt"] = chip_prompt
 
         typed_prompt = st.chat_input(
             "Ask TindahanIQ about your business...",
@@ -118,12 +129,18 @@ def render_ai_assistant(ctx: AppContext) -> None:
 
         effective_prompt = typed_prompt or queued_prompt
         if effective_prompt and ai_ready:
-            with st.spinner("Analyzing store data and running deterministic calculations..."):
-                try:
-                    ctx.ai_consultant.ask(str(effective_prompt), session=session)
-                    st.rerun()
-                except Exception as exc:
-                    st.error(get_user_safe_message(exc))
+            with chat_history_box:
+                with st.chat_message("user"):
+                    st.markdown(str(effective_prompt))
+                with (
+                    st.chat_message("assistant"),
+                    st.spinner("Analyzing store data and running deterministic calculations..."),
+                ):
+                    try:
+                        ctx.ai_consultant.ask(str(effective_prompt), session=session)
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(get_user_safe_message(exc))
 
         st.caption(
             "🔒 TindahanIQ calculates figures strictly from your local store database. "

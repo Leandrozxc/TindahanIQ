@@ -24,7 +24,7 @@ def render_empty_store_onboarding(ctx: AppContext, *, key_prefix: str) -> None:
                 "📤 Upload Your Store CSV Files",
                 key=f"{key_prefix}_goto_upload",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
             ):
                 navigate_to("upload_data")
                 st.rerun()
@@ -32,7 +32,7 @@ def render_empty_store_onboarding(ctx: AppContext, *, key_prefix: str) -> None:
             if st.button(
                 "🏪 Load Sample Sari-Sari Store Dataset (Demo)",
                 key=f"{key_prefix}_load_sample",
-                use_container_width=True,
+                width="stretch",
             ):
                 try:
                     inv_cnt, sales_cnt = ctx.load_sample_store_data()

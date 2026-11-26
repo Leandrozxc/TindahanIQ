@@ -24,6 +24,7 @@ def isolated_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     """Clear TindahanIQ environment variables and point storage to a temporary directory."""
     for key in ENV_KEYS:
         monkeypatch.delenv(key, raising=False)
+    monkeypatch.chdir(tmp_path)
     db_path = tmp_path / "data" / "test_tindahaniq.db"
     monkeypatch.setenv("DATABASE_PATH", str(db_path))
     return db_path

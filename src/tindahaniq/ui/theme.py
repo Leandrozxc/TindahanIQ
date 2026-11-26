@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 
 import streamlit as st
@@ -22,6 +23,15 @@ URGENCY_STYLES: dict[StockUrgency, tuple[str, str, str]] = {
     StockUrgency.LOW: ("#E0F2FE", "#0369A1", "Low"),
     StockUrgency.HEALTHY: ("#DCFCE7", "#15803D", "Healthy"),
 }
+
+
+MANILA_TZ = timezone(timedelta(hours=8), name="PHT")
+
+
+def format_manila_dt(dt: datetime) -> str:
+    """Format a datetime in Philippine Standard Time (UTC+8)."""
+    aware = dt.replace(tzinfo=UTC) if dt.tzinfo is None else dt.astimezone(UTC)
+    return f"{aware.astimezone(MANILA_TZ):%Y-%m-%d %H:%M}"
 
 
 def format_php(amount: Decimal | int | float | None) -> str:
@@ -109,6 +119,43 @@ def inject_theme_css() -> None:
         }
         .tiq-insight-row:last-child {
             border-bottom: none;
+        }
+
+        /* AI Assistant Chat Bubbles: Assistant on Left, User on Right */
+        [data-testid="stChatMessage"] {
+            padding-top: 0.2rem;
+            padding-bottom: 0.2rem;
+            gap: 0.5rem;
+        }
+        [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
+            justify-content: flex-start;
+        }
+        [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"])
+        [data-testid="stChatMessageContent"] {
+            background-color: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 14px;
+            padding: 8px 12px;
+            max-width: 85%;
+        }
+        [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+            flex-direction: row-reverse;
+            margin-left: auto;
+        }
+        [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"])
+        [data-testid="stChatMessageContent"] {
+            background-color: #065F46;
+            color: #FFFFFF;
+            border-radius: 14px;
+            padding: 8px 12px;
+            max-width: 78%;
+            text-align: left;
+        }
+        [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"])
+        [data-testid="stChatMessageContent"] p,
+        [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"])
+        [data-testid="stChatMessageContent"] span {
+            color: #FFFFFF !important;
         }
         </style>
         """,

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import streamlit as st
 
+from tindahaniq.exceptions import get_user_safe_message
 from tindahaniq.health import CheckStatus, run_health_checks
 from tindahaniq.ui.context import AppContext
-from tindahaniq.ui.state import set_flash_success
+from tindahaniq.ui.state import get_chat_session, set_flash_success
 
 STATUS_LABELS: dict[CheckStatus, str] = {
     "ok": "PASS",
@@ -72,7 +73,7 @@ def render_system_help(ctx: AppContext) -> None:
                     }
                     for i in consistency.issues
                 ],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -113,3 +114,25 @@ def render_system_help(ctx: AppContext) -> None:
                 ]
             )
         )
+
+    with st.expander("⚠️ Reset / Clear Store Database", expanded=False):
+        st.caption(
+            "Use this to wipe all products, inventory, sales transactions, and CSV import "
+            "history (for example, before switching between demo datasets)."
+        )
+        confirm_reset = st.checkbox(
+            "I understand this permanently deletes all local store records.",
+            key="confirm_reset_store_chk",
+        )
+        if st.button(
+            "🗑 Clear All Store Data",
+            disabled=not confirm_reset,
+            key="reset_store_data_btn",
+        ):
+            try:
+                ctx.reset_store_data()
+                get_chat_session().clear()
+                set_flash_success("Cleared all local store products, inventory, and sales records.")
+                st.rerun()
+            except Exception as exc:
+                st.error(get_user_safe_message(exc))

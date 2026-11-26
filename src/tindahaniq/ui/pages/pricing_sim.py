@@ -186,7 +186,7 @@ def render_pricing_sim(ctx: AppContext) -> None:
             st.markdown("#### Current vs. Simulated Financial Comparison")
             st.plotly_chart(
                 build_price_simulation_chart(sim),
-                use_container_width=True,
+                width="stretch",
                 config={"displayModeBar": False},
                 key="sim_comparison_chart",
             )
