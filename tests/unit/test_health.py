@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import httpx
 import pytest
 
 from tindahaniq.config import load_settings
@@ -62,3 +63,46 @@ def test_unwritable_storage_directory_marks_report_degraded(
     assert report.overall_status == "degraded"
     statuses = {item.name: item.status for item in report.checks}
     assert statuses["Local Data Directory"] == "error"
+
+
+def test_health_report_checks_turso_in_production_without_exposing_token(
+    isolated_env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    token = "turso-secret-health-token-xyz"
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("TURSO_DATABASE_URL", "libsql://tindahaniq-prod.turso.io")
+    monkeypatch.setenv("TURSO_AUTH_TOKEN", token)
+    settings = load_settings(env_file=None)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "baton": None,
+                "base_url": None,
+                "results": [
+                    {
+                        "type": "ok",
+                        "response": {
+                            "type": "execute",
+                            "result": {
+                                "cols": [{"name": "1", "decltype": None}],
+                                "rows": [[{"type": "integer", "value": "1"}]],
+                                "affected_row_count": 0,
+                                "last_insert_rowid": None,
+                            },
+                        },
+                    }
+                ],
+            },
+        )
+
+    report = run_health_checks(
+        settings, http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    serialized = json.dumps(report.to_dict())
+
+    assert report.overall_status == "healthy"
+    statuses = {item.name: item.status for item in report.checks}
+    assert statuses["Turso Persistence"] == "ok"
+    assert token not in serialized

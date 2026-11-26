@@ -1,16 +1,19 @@
 # Project Instructions
 
-Before performing any UI/UX design, frontend development, website creation, or interface improvement:
+## Stack & Architecture Reference
 
-1. Read `UI_DESIGN_GUIDELINES.md` completely.
-2. Treat its standards as mandatory for all UI work.
-3. Avoid generic AI-generated layouts and repetitive component patterns.
-4. Create distinctive, product-specific visual identities.
-5. Use React Bits, 21st.dev, shadcn/ui, Magic UI, and Motion when appropriate.
-6. Follow the design critique and refinement principles in the guidelines.
-7. Prioritize typography, spacing, composition, responsiveness, and accessibility.
-8. Make all visible interactions functional.
-9. Preserve existing project architecture and functionality.
-10. Critique and refine the implementation before completing the task.
+TindahanIQ is a **Python 3.12+ / Streamlit** single-store retail BI monolith deployed on **Streamlit Community Cloud** with **Turso (libSQL)** in production and local **SQLite 3** in dev/test.
 
-Do not consider a UI task finished simply because it compiles or works. It must also meet the visual quality standards in `UI_DESIGN_GUIDELINES.md`.
+Before making architectural, domain, or UI changes, consult these canonical references:
+- **Tech Stack & Production Contracts:** `docs/tech-stack.md`
+- **System Architecture & Schema:** `docs/architecture.md` and `docs/adr/`
+- **Domain Terminology:** `GLOSSARY.md`
+- **BI Formulas:** `docs/formulas.md`
+
+## UI / UX Standards
+
+Before performing any UI/UX work:
+1. Read `UI_DESIGN_GUIDELINES.md` and treat its standards as mandatory.
+2. Use the approved Streamlit UI stack: **Streamlit `>=1.40`** with **native Material Symbols (`:material/...:`)**, **`streamlit-shadcn-ui`**, **`streamlit-antd-components`**, **Plotly**, and `src/tindahaniq/ui/theme.py`.
+3. **Never use emojis as UI icons**; always use `:material/...:` or component icons.
+4. Preserve existing four-layer boundaries (no SQL or financial arithmetic in `ui/` or `ai/`), make all visible interactions functional, and verify with `pytest` and `ruff`.

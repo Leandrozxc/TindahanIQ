@@ -36,6 +36,8 @@ class AppSettings(BaseSettings):
     currency_code: str = Field(default="PHP", min_length=3, max_length=3)
 
     database_path: Path = Field(default=Path("data/tindahaniq.db"))
+    turso_database_url: str | None = Field(default=None)
+    turso_auth_token: SecretStr | None = Field(default=None)
 
     openai_api_key: SecretStr | None = Field(default=None)
     openai_base_url: str = Field(
@@ -60,13 +62,21 @@ class AppSettings(BaseSettings):
             return value.strip().upper()
         return value
 
-    @field_validator("openai_api_key", mode="before")
+    @field_validator("openai_api_key", "turso_auth_token", mode="before")
     @classmethod
     def _empty_key_to_none(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():
             return None
         if isinstance(value, SecretStr) and not value.get_secret_value().strip():
             return None
+        return value
+
+    @field_validator("turso_database_url", mode="before")
+    @classmethod
+    def _empty_url_to_none(cls, value: object) -> object:
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
         return value
 
     @property
@@ -82,6 +92,26 @@ class AppSettings(BaseSettings):
         return self.openai_api_key is not None and bool(
             self.openai_api_key.get_secret_value().strip()
         )
+
+    @property
+    def has_turso_config(self) -> bool:
+        """Indicate whether both Turso URL and auth token are configured."""
+        return (
+            self.turso_database_url is not None
+            and bool(self.turso_database_url.strip())
+            and self.turso_auth_token is not None
+            and bool(self.turso_auth_token.get_secret_value().strip())
+        )
+
+    @property
+    def turso_http_url(self) -> str | None:
+        """Normalize a libsql:// or https:// Turso URL to an HTTPS base URL."""
+        if not self.turso_database_url:
+            return None
+        url = self.turso_database_url.strip().rstrip("/")
+        if url.startswith("libsql://"):
+            return "https://" + url[len("libsql://") :]
+        return url
 
 
 def load_settings(env_file: Path | str | None = ".env") -> AppSettings:

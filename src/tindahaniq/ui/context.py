@@ -73,7 +73,7 @@ def build_app_context(
     store_name: str | None = None,
 ) -> AppContext:
     """Instantiate and initialize database-backed services for the current request."""
-    db = DatabaseManager(settings.resolved_database_path)
+    db = DatabaseManager.from_settings(settings)
     db.initialize_schema()
     return AppContext(
         settings=settings,

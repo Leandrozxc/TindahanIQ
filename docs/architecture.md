@@ -1,5 +1,7 @@
 # TindahanIQ — System Architecture & Technical Reference
 
+> For the complete production tech stack, runtime contracts, and caching/resilience policies, see [tech-stack.md](tech-stack.md), [GLOSSARY.md](../GLOSSARY.md), and [docs/adr/](adr/).
+
 ## 1. Architectural Overview
 
 **TindahanIQ** follows a strict **Four-Layer Modular Architecture** where dependencies flow unidirectionally downward. Neither the Streamlit presentation layer nor the AI LLM layer ever performs authoritative arithmetic or executes raw SQL directly.
@@ -7,16 +9,16 @@
 ```mermaid
 flowchart TD
     subgraph Presentation["1. Presentation Layer (src/tindahaniq/ui/)"]
-        Shell["shell.py & app.py (Sidebar Router, Error Boundary, Theme)"]
+        Shell["shell.py & app.py (Sidebar Router, Caching, Error Boundary, Theme)"]
         Pages["7 Views: Dashboard | AI Assistant | Inventory | Sales & Profit | Pricing Sim | Upload Data | System & Help"]
-        Components["Reusable Components: KPI Strip, Live Insights Rail, Plotly Charts, Empty States"]
+        Components["UI Stack: Native :material/: Icons | streamlit-shadcn-ui | streamlit-antd-components | Plotly Charts"]
     end
 
     subgraph AI["2. AI Orchestration Layer (src/tindahaniq/ai/)"]
-        Consultant["AIConsultantService (5-Round Controlled Tool Loop)"]
+        Consultant["AIConsultantService (5-Round Controlled Tool Loop + Grounded Fallback)"]
         Sanitizer["sanitizer.py & prompts.py (Prompt-Injection Defense & Secret Scrubbing)"]
         Tools["BusinessToolRegistry (7 Read-Only Deterministic Tools)"]
-        Provider["OpenAIProvider (openai SDK Adapter)"]
+        Provider["OpenAIProvider (30s Timeout, 2 Jittered Retries, Optional Fallback)"]
     end
 
     subgraph DomainBI["3. Domain & Business Intelligence Layer (src/tindahaniq/services/)"]
@@ -28,7 +30,7 @@ flowchart TD
     subgraph Persistence["4. Persistence & Validation Layer (db/ & models/ & utils/)"]
         Schemas["Pydantic v2 Domain & Analytics Schemas"]
         Repos["Parameterized Repositories: ProductRepository | SalesRepository | ImportBatchRepository"]
-        SQLite[("SQLite 3 Local Store DB (WAL + Foreign Keys)")]
+        SQLite[("Local SQLite 3 (Dev/Test) / Turso libSQL (Production)")]
     end
 
     Shell --> Pages --> Components

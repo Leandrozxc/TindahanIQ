@@ -581,9 +581,6 @@ class CSVImportService:
         row_number: int,
         conn: object,
     ) -> tuple[ProductWithInventory | None, ImportRowError | None]:
-        import sqlite3
-
-        assert isinstance(conn, sqlite3.Connection)
         raw_sku = raw_values.get("sku", "").strip()
         raw_name = raw_values.get("product_name", "").strip()
 

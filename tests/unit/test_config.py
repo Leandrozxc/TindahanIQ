@@ -72,3 +72,31 @@ def test_invalid_configuration_raises_domain_error(
 
     assert "log_level" in exc_info.value.details.get("fields", [])
     assert "log_level" in exc_info.value.user_message
+
+
+def test_turso_credentials_load_and_mask_auth_token(
+    isolated_env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw_token = "eyJhbGciOiJFZERTQSJ9.super_secret_turso_token"
+    monkeypatch.setenv("TURSO_DATABASE_URL", "libsql://tindahaniq-prod.turso.io")
+    monkeypatch.setenv("TURSO_AUTH_TOKEN", raw_token)
+
+    settings = load_settings(env_file=None)
+
+    assert settings.has_turso_config is True
+    assert settings.turso_http_url == "https://tindahaniq-prod.turso.io"
+    assert raw_token not in repr(settings)
+    assert raw_token not in str(settings)
+
+
+def test_blank_turso_credentials_treated_as_unconfigured(
+    isolated_env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("TURSO_DATABASE_URL", "   ")
+    monkeypatch.setenv("TURSO_AUTH_TOKEN", "   ")
+
+    settings = load_settings(env_file=None)
+
+    assert settings.turso_database_url is None
+    assert settings.turso_auth_token is None
+    assert settings.has_turso_config is False

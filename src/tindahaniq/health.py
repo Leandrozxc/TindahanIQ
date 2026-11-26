@@ -9,6 +9,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
+import httpx
+
 from tindahaniq import __version__
 from tindahaniq.config import AppSettings
 from tindahaniq.db.connection import DatabaseManager
@@ -101,6 +103,28 @@ def _check_sqlite_database(db_path: Path) -> HealthCheckItem:
     )
 
 
+def _check_turso_database(
+    settings: AppSettings,
+    *,
+    http_client: httpx.Client | None = None,
+) -> HealthCheckItem:
+    try:
+        manager = DatabaseManager.from_settings(settings, http_client=http_client)
+        with manager.read_connection() as conn:
+            conn.execute("SELECT 1;")
+    except DatabaseError as exc:
+        return HealthCheckItem(
+            name="Turso Persistence",
+            status="error",
+            detail=f"Turso database check failed ({exc.user_message}).",
+        )
+    return HealthCheckItem(
+        name="Turso Persistence",
+        status="ok",
+        detail="Turso (libSQL) connection verified (auth token masked).",
+    )
+
+
 def _check_ai_configuration(settings: AppSettings) -> HealthCheckItem:
     if settings.has_ai_api_key:
         return HealthCheckItem(
@@ -117,19 +141,30 @@ def _check_ai_configuration(settings: AppSettings) -> HealthCheckItem:
     )
 
 
-def run_health_checks(settings: AppSettings) -> SystemHealthReport:
+def run_health_checks(
+    settings: AppSettings,
+    *,
+    http_client: httpx.Client | None = None,
+) -> SystemHealthReport:
     """Execute deterministic health checks without exposing secrets."""
-    resolved_db = settings.resolved_database_path
-    storage_check = _check_storage_directory(resolved_db)
-    db_check = (
-        _check_sqlite_database(resolved_db)
-        if storage_check.status == "ok"
-        else HealthCheckItem(
-            name="SQLite Persistence",
-            status="error",
-            detail="Skipped SQLite initialization because storage directory is unavailable.",
+    if settings.app_env == "production" and settings.has_turso_config:
+        persistence_checks: tuple[HealthCheckItem, ...] = (
+            _check_turso_database(settings, http_client=http_client),
         )
-    )
+    else:
+        resolved_db = settings.resolved_database_path
+        storage_check = _check_storage_directory(resolved_db)
+        db_check = (
+            _check_sqlite_database(resolved_db)
+            if storage_check.status == "ok"
+            else HealthCheckItem(
+                name="SQLite Persistence",
+                status="error",
+                detail="Skipped SQLite initialization because storage directory is unavailable.",
+            )
+        )
+        persistence_checks = (storage_check, db_check)
+
     checks = (
         HealthCheckItem(
             name="Application Configuration",
@@ -140,8 +175,7 @@ def run_health_checks(settings: AppSettings) -> SystemHealthReport:
             ),
         ),
         _check_python_runtime(),
-        storage_check,
-        db_check,
+        *persistence_checks,
         _check_ai_configuration(settings),
     )
     has_error = any(item.status == "error" for item in checks)
