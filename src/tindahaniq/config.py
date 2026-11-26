@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import os
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic import ValidationError as PydanticValidationError
@@ -114,10 +116,34 @@ class AppSettings(BaseSettings):
         return url
 
 
-def load_settings(env_file: Path | str | None = ".env") -> AppSettings:
-    """Load and validate application settings, translating validation errors cleanly."""
+def _read_streamlit_secrets() -> Mapping[str, Any]:
+    """Safely read top-level Streamlit secrets if running with a secrets.toml."""
     try:
-        return AppSettings(_env_file=env_file)
+        import streamlit as st
+
+        return dict(st.secrets)
+    except Exception:
+        return {}
+
+
+def load_settings(
+    env_file: Path | str | None = ".env",
+    *,
+    secrets: Mapping[str, Any] | None = None,
+) -> AppSettings:
+    """Load and validate application settings, translating validation errors cleanly."""
+    resolved_secrets = _read_streamlit_secrets() if secrets is None else secrets
+    secret_overrides: dict[str, Any] = {}
+    env_upper = {k.upper() for k in os.environ}
+    valid_fields = set(AppSettings.model_fields)
+
+    for raw_key, raw_val in resolved_secrets.items():
+        field_name = str(raw_key).strip().lower()
+        if field_name in valid_fields and field_name.upper() not in env_upper:
+            secret_overrides[field_name] = raw_val
+
+    try:
+        return AppSettings(_env_file=env_file, **secret_overrides)
     except PydanticValidationError as exc:
         invalid_fields = [
             ".".join(str(part) for part in err.get("loc", ())) for err in exc.errors()

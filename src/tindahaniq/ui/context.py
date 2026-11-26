@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+import streamlit as st
+
 from tindahaniq.ai import AIConsultantService
 from tindahaniq.config import PROJECT_ROOT, AppSettings
 from tindahaniq.db import DatabaseManager
@@ -38,7 +40,12 @@ class AppContext:
 
     def has_active_products(self) -> bool:
         """Return True when the store catalog has at least one active product."""
-        return len(self.inventory_service.list_inventory(active_only=True)) > 0
+        cache_scope = (
+            self.settings.turso_http_url
+            if self.db.is_turso
+            else str(self.settings.resolved_database_path)
+        )
+        return _cached_has_active_products(cache_scope or "", self.inventory_service)
 
     def load_sample_store_data(
         self,
@@ -67,14 +74,57 @@ class AppContext:
             conn.execute("DELETE FROM products;")
 
 
+@st.cache_resource
+def _get_initialized_database(
+    db_path_str: str,
+    app_env: str,
+    turso_http_url: str | None,
+    turso_token_hash: str | None,
+    _turso_token: str | None,
+) -> DatabaseManager:
+    """Cache DatabaseManager and one-time schema initialization per database target."""
+    if app_env == "production" and turso_http_url and _turso_token:
+        db = DatabaseManager(
+            db_path_str,
+            turso_url=turso_http_url,
+            turso_auth_token=_turso_token,
+            on_commit=st.cache_data.clear,
+        )
+    else:
+        db = DatabaseManager(db_path_str, on_commit=st.cache_data.clear)
+    db.initialize_schema()
+    return db
+
+
+@st.cache_data(ttl=300)
+def _cached_has_active_products(
+    cache_scope: str,
+    _inventory_service: InventoryService,
+) -> bool:
+    """Cache active-product presence check until the next transactional write."""
+    del cache_scope
+    return len(_inventory_service.list_inventory(active_only=True)) > 0
+
+
 def build_app_context(
     settings: AppSettings,
     *,
     store_name: str | None = None,
 ) -> AppContext:
     """Instantiate and initialize database-backed services for the current request."""
-    db = DatabaseManager.from_settings(settings)
-    db.initialize_schema()
+    turso_token = (
+        settings.turso_auth_token.get_secret_value()
+        if settings.turso_auth_token is not None
+        else None
+    )
+    token_marker = "configured" if turso_token else None
+    db = _get_initialized_database(
+        str(settings.resolved_database_path),
+        settings.app_env,
+        settings.turso_http_url,
+        token_marker,
+        turso_token,
+    )
     return AppContext(
         settings=settings,
         db=db,

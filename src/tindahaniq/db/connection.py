@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -30,12 +30,14 @@ class DatabaseManager:
         turso_url: str | None = None,
         turso_auth_token: str | None = None,
         http_client: httpx.Client | None = None,
+        on_commit: Callable[[], None] | None = None,
     ) -> None:
         self.db_path = Path(db_path) if str(db_path) != ":memory:" else Path(":memory:")
         self._is_memory = str(db_path) == ":memory:"
         self._turso_url = turso_url.strip() if turso_url else None
         self._turso_auth_token = turso_auth_token.strip() if turso_auth_token else None
         self._http_client = http_client
+        self._on_commit = on_commit
 
     @classmethod
     def from_settings(
@@ -43,6 +45,7 @@ class DatabaseManager:
         settings: AppSettings,
         *,
         http_client: httpx.Client | None = None,
+        on_commit: Callable[[], None] | None = None,
     ) -> DatabaseManager:
         """Build a DatabaseManager routed to Turso in production or local SQLite otherwise."""
         if settings.app_env == "production" and settings.has_turso_config:
@@ -53,8 +56,9 @@ class DatabaseManager:
                 turso_url=settings.turso_http_url,
                 turso_auth_token=settings.turso_auth_token.get_secret_value(),
                 http_client=http_client,
+                on_commit=on_commit,
             )
-        return cls(settings.resolved_database_path)
+        return cls(settings.resolved_database_path, on_commit=on_commit)
 
     @property
     def is_turso(self) -> bool:
@@ -136,6 +140,8 @@ class DatabaseManager:
             conn.execute("BEGIN IMMEDIATE;")
             yield conn
             conn.commit()
+            if self._on_commit is not None:
+                self._on_commit()
         except TindahanIQError:
             conn.rollback()
             raise

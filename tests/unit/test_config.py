@@ -100,3 +100,29 @@ def test_blank_turso_credentials_treated_as_unconfigured(
     assert settings.turso_database_url is None
     assert settings.turso_auth_token is None
     assert settings.has_turso_config is False
+
+
+def test_streamlit_secrets_populate_settings_and_env_takes_precedence(
+    isolated_env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    secret_ai = "sk-streamlit-cloud-secret-999"
+    secret_turso = "turso-streamlit-cloud-token-888"
+    monkeypatch.setenv("STORE_NAME", "Env Override Store")
+
+    settings = load_settings(
+        env_file=None,
+        secrets={
+            "APP_ENV": "production",
+            "STORE_NAME": "Secrets Store",
+            "TURSO_DATABASE_URL": "libsql://cloud-prod.turso.io",
+            "TURSO_AUTH_TOKEN": secret_turso,
+            "OPENAI_API_KEY": secret_ai,
+        },
+    )
+
+    assert settings.app_env == "production"
+    assert settings.store_name == "Env Override Store"
+    assert settings.has_turso_config is True
+    assert settings.has_ai_api_key is True
+    assert secret_ai not in repr(settings)
+    assert secret_turso not in repr(settings)
