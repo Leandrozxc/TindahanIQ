@@ -32,12 +32,13 @@
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
 | **Runtime** | Python `3.12+` | Core application language & exact `decimal.Decimal` math |
-| **Web UI** | Streamlit (`>=1.40`) | Multipage dashboard, split-view AI workspace & forms |
-| **Persistence** | SQLite 3 (`sqlite3` stdlib) | Serverless local ACID relational storage (WAL + Foreign Keys) |
-| **Validation & Config** | Pydantic v2 + `pydantic-settings` | Strict domain schemas, CSV validation & `SecretStr` key masking |
+| **Web UI** | Streamlit (`>=1.40`), `streamlit-shadcn-ui`, `streamlit-antd-components` | Multipage dashboard, native `:material/...:` icons, split-view AI workspace & forms |
+| **Persistence (Dev/Test)** | SQLite 3 (`sqlite3` stdlib) | Serverless local ACID relational storage (WAL + Foreign Keys) |
+| **Persistence (Prod)** | Turso (libSQL via `httpx` Hrana v2) | Durable remote SQLite-compatible storage surviving Streamlit Cloud restarts |
+| **Validation & Config** | Pydantic v2 + `pydantic-settings` | Strict domain schemas, CSV validation, `st.secrets` + `.env`, & `SecretStr` masking |
 | **Data & CSV** | Pandas (`>=2.2`) | CSV encoding/header normalization & tabular display |
 | **Visualization** | Plotly (`>=5.24`) | Interactive `₱`-formatted trend, category & simulation charts |
-| **AI Integration** | OpenAI Python SDK (`openai`) | `gpt-6-luna` native function/tool calling |
+| **AI Integration** | OpenAI Python SDK (`openai`) | `gpt-6-luna` tool calling, `30s` timeout, `2` jittered retries, & optional fallback |
 | **Quality & Tests** | `pytest`, `pytest-cov`, `ruff`, `AppTest` | Unit, integration, UI workflow, security & performance verification |
 
 ---
@@ -108,6 +109,40 @@ streamlit run src/tindahaniq/app.py
 
 ---
 
+## Production Deployment (Streamlit Community Cloud + Turso)
+
+1. **Create a Turso Database:** Create a database in [Turso](https://turso.tech/) and generate an auth token (`TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`).
+2. **Deploy on Streamlit Community Cloud:**
+   - **Repository / Branch:** Your GitHub repository & target branch (`requirements.txt` and `pyproject.toml` are both at repo root).
+   - **Main file path:** `src/tindahaniq/app.py`
+   - **Python version:** `3.12` (or `3.13+`).
+3. **Configure App Secrets (Settings → Secrets):**
+
+```toml
+APP_ENV = "production"
+LOG_LEVEL = "INFO"
+STORE_NAME = "My Sari-Sari Store"
+CURRENCY_SYMBOL = "₱"
+CURRENCY_CODE = "PHP"
+
+TURSO_DATABASE_URL = "libsql://your-db-name.turso.io"
+TURSO_AUTH_TOKEN = "your-turso-auth-token"
+
+OPENAI_API_KEY = "your-primary-api-key"
+OPENAI_BASE_URL = "https://aiki-labs.up.railway.app/api/v1"
+OPENAI_MODEL = "gpt-6-luna"
+OPENAI_MAX_COMPLETION_TOKENS = 1024
+
+# Optional secondary fallback provider if primary proxy is unavailable
+OPENAI_FALLBACK_BASE_URL = ""
+OPENAI_FALLBACK_MODEL = ""
+OPENAI_FALLBACK_API_KEY = ""
+```
+
+4. **Verify Production Health:** Open `https://<your-app>.streamlit.app/?healthz=1` and confirm `"overall_status": "healthy"` with `"Turso Persistence": "ok"` and `"AI Provider Key": "ok"`.
+
+---
+
 ## Sample CSV Datasets
 
 Ready-to-use Filipino sari-sari store CSV datasets are located in `data/samples/`:
@@ -140,7 +175,10 @@ ruff format --check .
 
 ## Technical Documentation
 
+- [Production Architecture & Tech Stack Reference](docs/tech-stack.md)
 - [System Architecture & Data Model](docs/architecture.md)
+- [Architecture Decision Records](docs/adr/)
+- [Domain Glossary](GLOSSARY.md)
 - [Authoritative Business Intelligence Formulas](docs/formulas.md)
 - [Phase 7 Quality Assurance & Security Report](docs/qa_report.md)
 - [Live Demonstration Guide & Submission Checklist](docs/demo_checklist.md)
