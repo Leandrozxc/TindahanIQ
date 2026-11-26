@@ -49,6 +49,9 @@ class AppSettings(BaseSettings):
     )
     openai_model: str = Field(default="gpt-6-luna", min_length=1, max_length=100)
     openai_max_completion_tokens: int = Field(default=1024, ge=64, le=16384)
+    openai_fallback_base_url: str | None = Field(default=None, max_length=300)
+    openai_fallback_model: str | None = Field(default=None, max_length=100)
+    openai_fallback_api_key: SecretStr | None = Field(default=None)
 
     @field_validator("app_env", mode="before")
     @classmethod
@@ -64,7 +67,7 @@ class AppSettings(BaseSettings):
             return value.strip().upper()
         return value
 
-    @field_validator("openai_api_key", "turso_auth_token", mode="before")
+    @field_validator("openai_api_key", "openai_fallback_api_key", "turso_auth_token", mode="before")
     @classmethod
     def _empty_key_to_none(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():
@@ -73,7 +76,12 @@ class AppSettings(BaseSettings):
             return None
         return value
 
-    @field_validator("turso_database_url", mode="before")
+    @field_validator(
+        "turso_database_url",
+        "openai_fallback_base_url",
+        "openai_fallback_model",
+        mode="before",
+    )
     @classmethod
     def _empty_url_to_none(cls, value: object) -> object:
         if isinstance(value, str):
@@ -93,6 +101,17 @@ class AppSettings(BaseSettings):
         """Indicate whether a non-empty AI API key is configured without exposing it."""
         return self.openai_api_key is not None and bool(
             self.openai_api_key.get_secret_value().strip()
+        )
+
+    @property
+    def has_ai_fallback(self) -> bool:
+        """Indicate whether secondary OpenAI-compatible fallback credentials are configured."""
+        return (
+            self.openai_fallback_api_key is not None
+            and bool(self.openai_fallback_api_key.get_secret_value().strip())
+            and (
+                self.openai_fallback_base_url is not None or self.openai_fallback_model is not None
+            )
         )
 
     @property

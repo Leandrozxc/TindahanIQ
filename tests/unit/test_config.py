@@ -126,3 +126,20 @@ def test_streamlit_secrets_populate_settings_and_env_takes_precedence(
     assert settings.has_ai_api_key is True
     assert secret_ai not in repr(settings)
     assert secret_turso not in repr(settings)
+
+
+def test_ai_fallback_credentials_load_and_mask_secret(
+    isolated_env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fallback_key = "sk-fallback-secret-token-777"
+    monkeypatch.setenv("OPENAI_FALLBACK_BASE_URL", "https://api.openai.com/v1")
+    monkeypatch.setenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
+    monkeypatch.setenv("OPENAI_FALLBACK_API_KEY", fallback_key)
+
+    settings = load_settings(env_file=None)
+
+    assert settings.has_ai_fallback is True
+    assert settings.openai_fallback_base_url == "https://api.openai.com/v1"
+    assert settings.openai_fallback_model == "gpt-4o-mini"
+    assert fallback_key not in repr(settings)
+    assert fallback_key not in str(settings)

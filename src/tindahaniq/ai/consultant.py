@@ -130,6 +130,8 @@ class AIConsultantService:
         secrets_to_scrub: list[str] = []
         if self._settings.openai_api_key is not None:
             secrets_to_scrub.append(self._settings.openai_api_key.get_secret_value())
+        if self._settings.openai_fallback_api_key is not None:
+            secrets_to_scrub.append(self._settings.openai_fallback_api_key.get_secret_value())
 
         safe_answer = scrub_sensitive_output(final_text.strip(), secret_values=secrets_to_scrub)
         unique_tools = tuple(dict.fromkeys(invoked_tool_names))

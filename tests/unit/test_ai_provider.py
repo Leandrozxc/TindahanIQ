@@ -129,6 +129,7 @@ def test_openai_provider_maps_rate_limit_auth_not_found_and_empty_choices(
     provider = OpenAIProvider(
         settings,
         client=_FakeOpenAIClient([rate_err, auth_err, not_found_err, empty_resp]),
+        max_retries=0,
     )
 
     with pytest.raises(AIServiceError) as exc_429:
@@ -165,3 +166,106 @@ def test_openai_provider_maps_rate_limit_auth_not_found_and_empty_choices(
             system_instruction="sys",
             tools=(),
         )
+
+
+def test_openai_provider_retries_transient_errors_and_recovers(
+    isolated_env: Path,
+) -> None:
+    settings = load_settings(env_file=None)
+    sleep_delays: list[float] = []
+    transient_503 = _make_status_error(503, "Service Unavailable")
+    transient_429 = _make_status_error(429, "Rate limit")
+    ok_resp = SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content="Recovered!", tool_calls=None))]
+    )
+
+    fake_client = _FakeOpenAIClient([transient_503, transient_429, ok_resp])
+    provider = OpenAIProvider(
+        settings,
+        client=fake_client,
+        sleep_fn=sleep_delays.append,
+    )
+
+    turn = provider.generate_turn(
+        conversation=[ChatMessage(role="user", content="Hi")],
+        current_turn_steps=(),
+        system_instruction="sys",
+        tools=(),
+    )
+
+    assert turn.text == "Recovered!"
+    assert len(fake_client.chat.completions.calls) == 3
+    assert len(sleep_delays) == 2
+
+
+def test_openai_provider_does_not_retry_auth_errors(isolated_env: Path) -> None:
+    settings = load_settings(env_file=None)
+    auth_err = _make_status_error(401, "Invalid API key")
+    fake_client = _FakeOpenAIClient([auth_err])
+    provider = OpenAIProvider(settings, client=fake_client, sleep_fn=lambda _s: None)
+
+    with pytest.raises(AIServiceError):
+        provider.generate_turn(
+            conversation=[ChatMessage(role="user", content="Hi")],
+            current_turn_steps=(),
+            system_instruction="sys",
+            tools=(),
+        )
+
+    assert len(fake_client.chat.completions.calls) == 1
+
+
+def test_openai_provider_falls_back_to_secondary_client_when_primary_exhausted(
+    isolated_env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("OPENAI_FALLBACK_BASE_URL", "https://api.openai.com/v1")
+    monkeypatch.setenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
+    monkeypatch.setenv("OPENAI_FALLBACK_API_KEY", "sk-fallback-secret-000")
+    settings = load_settings(env_file=None)
+
+    primary_err = _make_status_error(503, "Primary down")
+    primary_client = _FakeOpenAIClient([primary_err, primary_err, primary_err])
+    fallback_resp = SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content="From fallback", tool_calls=None))]
+    )
+    fallback_client = _FakeOpenAIClient([fallback_resp])
+
+    provider = OpenAIProvider(
+        settings,
+        client=primary_client,
+        fallback_client=fallback_client,
+        sleep_fn=lambda _s: None,
+    )
+
+    turn = provider.generate_turn(
+        conversation=[ChatMessage(role="user", content="Hi")],
+        current_turn_steps=(),
+        system_instruction="sys",
+        tools=(),
+    )
+
+    assert turn.text == "From fallback"
+    assert len(primary_client.chat.completions.calls) == 3
+    assert len(fallback_client.chat.completions.calls) == 1
+    assert fallback_client.chat.completions.calls[0]["model"] == "gpt-4o-mini"
+
+
+def test_openai_provider_uses_30s_total_5s_connect_timeout(
+    isolated_env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-primary-test-key")
+    captured: dict[str, Any] = {}
+
+    class _CapturingOpenAI:
+        def __init__(self, **kwargs: Any) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr("tindahaniq.ai.provider.OpenAI", _CapturingOpenAI)
+    settings = load_settings(env_file=None)
+    OpenAIProvider(settings)
+
+    timeout = captured["timeout"]
+    assert isinstance(timeout, httpx.Timeout)
+    assert timeout.read == 30.0
+    assert timeout.connect == 5.0
+    assert captured["max_retries"] == 0
