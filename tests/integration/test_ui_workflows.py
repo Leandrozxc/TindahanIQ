@@ -150,7 +150,7 @@ def test_upload_demo_14d_and_reset_store_data(isolated_env: Path) -> None:
 def test_ai_assistant_chip_and_clear_history_with_mocked_provider(
     isolated_env: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("GEMINI_API_KEY", "test-fake-key-for-apptest-12345")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-cal-test-fake-key-for-apptest-12345")
 
     class _FakeUIProvider:
         def __init__(self) -> None:

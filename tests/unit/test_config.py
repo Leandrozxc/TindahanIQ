@@ -41,19 +41,19 @@ def test_env_normalization_and_relative_db_path(
 def test_blank_api_key_treated_as_unconfigured(
     isolated_env: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("GEMINI_API_KEY", "   ")
+    monkeypatch.setenv("OPENAI_API_KEY", "   ")
 
     settings = load_settings(env_file=None)
 
-    assert settings.gemini_api_key is None
+    assert settings.openai_api_key is None
     assert settings.has_ai_api_key is False
 
 
 def test_secret_api_key_is_masked_in_representations(
     isolated_env: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    raw_secret = "AIzaSyExampleSuperSecretKeyValue12345"
-    monkeypatch.setenv("GEMINI_API_KEY", raw_secret)
+    raw_secret = "sk-cal-ExampleSuperSecretKeyValue12345"
+    monkeypatch.setenv("OPENAI_API_KEY", raw_secret)
 
     settings = load_settings(env_file=None)
 

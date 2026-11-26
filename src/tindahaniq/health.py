@@ -106,13 +106,13 @@ def _check_ai_configuration(settings: AppSettings) -> HealthCheckItem:
         return HealthCheckItem(
             name="AI Provider Key",
             status="ok",
-            detail=f"API key configured for model `{settings.gemini_model}` (value masked).",
+            detail=f"API key configured for model `{settings.openai_model}` (value masked).",
         )
     return HealthCheckItem(
         name="AI Provider Key",
         status="notice",
         detail=(
-            "GEMINI_API_KEY is not configured yet. Optional until Phase 5 (AI Business Consultant)."
+            "OPENAI_API_KEY is not configured yet. Optional until Phase 5 (AI Business Consultant)."
         ),
     )
 

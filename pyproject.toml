@@ -9,7 +9,7 @@ description = "AI-powered business intelligence assistant for Filipino sari-sari
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "google-genai>=1.0,<2.0",
+    "openai>=1.50,<3.0",
     "pandas>=2.2,<4.0",
     "plotly>=5.24,<7.0",
     "pydantic>=2.9,<3.0",

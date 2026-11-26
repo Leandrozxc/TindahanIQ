@@ -52,7 +52,7 @@ def render_ai_assistant(ctx: AppContext) -> None:
             badge_text = "🟢 Online & Ready" if ai_ready else "🟠 API Key Needed"
             st.markdown(f"#### 🤖 TindahanIQ AI Assistant  `{badge_text}`")
             st.caption(
-                f"Connected to local SQLite store records • Model `{ctx.settings.gemini_model}`"
+                f"Connected to local SQLite store records • Model `{ctx.settings.openai_model}`"
             )
         with head_export:
             st.download_button(
@@ -72,7 +72,7 @@ def render_ai_assistant(ctx: AppContext) -> None:
 
         if not ai_ready:
             st.warning(
-                "**AI Chat Configuration Required:** Add `GEMINI_API_KEY=<your_key>` to your "
+                "**AI Chat Configuration Required:** Add `OPENAI_API_KEY=<your_key>` to your "
                 "local `.env` file and restart TindahanIQ to enable live AI conversations. "
                 "All deterministic analytics, restock calculations, and simulations remain active."
             )

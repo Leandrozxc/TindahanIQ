@@ -7,7 +7,7 @@
 
 ## Overview
 
-**TindahanIQ** is an AI-powered business intelligence assistant built with Python and Streamlit for Filipino **sari-sari store owners, neighborhood retailers, and micro-entrepreneurs**. It combines deterministic base-10 `Decimal` financial analytics with a tool-calling Google Gemini AI Business Consultant so small retailers can understand their actual store records and make informed inventory, pricing, and profitability decisions in plain language.
+**TindahanIQ** is an AI-powered business intelligence assistant built with Python and Streamlit for Filipino **sari-sari store owners, neighborhood retailers, and micro-entrepreneurs**. It combines deterministic base-10 `Decimal` financial analytics with a tool-calling OpenAI-compatible AI Business Consultant so small retailers can understand their actual store records and make informed inventory, pricing, and profitability decisions in plain language.
 
 ### Core Modules
 
@@ -37,7 +37,7 @@
 | **Validation & Config** | Pydantic v2 + `pydantic-settings` | Strict domain schemas, CSV validation & `SecretStr` key masking |
 | **Data & CSV** | Pandas (`>=2.2`) | CSV encoding/header normalization & tabular display |
 | **Visualization** | Plotly (`>=5.24`) | Interactive `₱`-formatted trend, category & simulation charts |
-| **AI Integration** | Google GenAI SDK (`google-genai`) | `gemini-3.5-flash-lite` native function/tool calling |
+| **AI Integration** | OpenAI Python SDK (`openai`) | `gpt-6-luna` native function/tool calling |
 | **Quality & Tests** | `pytest`, `pytest-cov`, `ruff`, `AppTest` | Unit, integration, UI workflow, security & performance verification |
 
 ---
@@ -77,7 +77,7 @@ Copy `.env.example` to `.env`:
 Copy-Item .env.example .env
 ```
 
-Edit `.env` and add your Google AI Studio API key (`GEMINI_API_KEY`) to enable the conversational AI Business Consultant:
+Edit `.env` and add your OpenAI-compatible API key (`OPENAI_API_KEY`) to enable the conversational AI Business Consultant:
 
 ```env
 APP_NAME=TindahanIQ
@@ -87,8 +87,10 @@ STORE_NAME=My Sari-Sari Store
 CURRENCY_SYMBOL=₱
 CURRENCY_CODE=PHP
 DATABASE_PATH=data/tindahaniq.db
-GEMINI_API_KEY=your_google_ai_studio_api_key_here
-GEMINI_MODEL=gemini-3.5-flash-lite
+OPENAI_API_KEY=your_api_key_here
+OPENAI_BASE_URL=https://aiki-labs.up.railway.app/api/v1
+OPENAI_MODEL=gpt-6-luna
+OPENAI_MAX_COMPLETION_TOKENS=1024
 ```
 
 > **Note:** Never commit `.env` to Git. All non-AI modules (Dashboard, Inventory & Budget Planner, Sales & Profitability Analytics, Pricing Simulator, and CSV Upload) work 100% offline even without an API key.

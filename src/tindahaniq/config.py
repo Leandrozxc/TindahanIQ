@@ -37,8 +37,14 @@ class AppSettings(BaseSettings):
 
     database_path: Path = Field(default=Path("data/tindahaniq.db"))
 
-    gemini_api_key: SecretStr | None = Field(default=None)
-    gemini_model: str = Field(default="gemini-3.5-flash-lite", min_length=1, max_length=100)
+    openai_api_key: SecretStr | None = Field(default=None)
+    openai_base_url: str = Field(
+        default="https://aiki-labs.up.railway.app/api/v1",
+        min_length=1,
+        max_length=300,
+    )
+    openai_model: str = Field(default="gpt-6-luna", min_length=1, max_length=100)
+    openai_max_completion_tokens: int = Field(default=1024, ge=64, le=16384)
 
     @field_validator("app_env", mode="before")
     @classmethod
@@ -54,7 +60,7 @@ class AppSettings(BaseSettings):
             return value.strip().upper()
         return value
 
-    @field_validator("gemini_api_key", mode="before")
+    @field_validator("openai_api_key", mode="before")
     @classmethod
     def _empty_key_to_none(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():
@@ -73,8 +79,8 @@ class AppSettings(BaseSettings):
     @property
     def has_ai_api_key(self) -> bool:
         """Indicate whether a non-empty AI API key is configured without exposing it."""
-        return self.gemini_api_key is not None and bool(
-            self.gemini_api_key.get_secret_value().strip()
+        return self.openai_api_key is not None and bool(
+            self.openai_api_key.get_secret_value().strip()
         )
 
 

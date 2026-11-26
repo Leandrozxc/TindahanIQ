@@ -16,7 +16,7 @@ flowchart TD
         Consultant["AIConsultantService (5-Round Controlled Tool Loop)"]
         Sanitizer["sanitizer.py & prompts.py (Prompt-Injection Defense & Secret Scrubbing)"]
         Tools["BusinessToolRegistry (7 Read-Only Deterministic Tools)"]
-        Provider["GeminiProvider (google-genai SDK Adapter)"]
+        Provider["OpenAIProvider (openai SDK Adapter)"]
     end
 
     subgraph DomainBI["3. Domain & Business Intelligence Layer (src/tindahaniq/services/)"]
@@ -68,7 +68,7 @@ Every stock-changing operation—initial catalog creation, CSV inventory sync, s
 
 1. **Read-Only Deterministic Tools:** `AIConsultantService` exposes 7 read-only tools (`get_store_overview`, `search_store_products`, `analyze_profitability`, `analyze_sales_trends`, `get_restock_recommendations`, `plan_budget_restock`, `simulate_price_change`) backed by `services/bi/`. No tool can mutate data, execute SQL, or run arbitrary Python code.
 2. **Prompt-Injection Fencing:** Strings originating from uploaded CSVs (`product_name`, `category`, `sku`) are stripped of control characters, scrubbed of role delimiters (`<system>`, `[INST]`, triple-backticks), and labeled with `_data_notice` inside JSON tool payloads.
-3. **Gemini Thought Preservation:** `GeminiProvider` preserves `raw_model_content` across multi-round function-calling steps while filtering internal `thought` parts out of user-facing chat messages.
+3. **OpenAI-Compatible & Grounded Fallback:** `OpenAIProvider` supports standard Chat Completions tool calling, and `AIConsultantService` automatically falls back to deterministic pre-grounding when a custom endpoint omits native tool calls.
 
 ---
 

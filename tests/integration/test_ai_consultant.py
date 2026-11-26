@@ -257,8 +257,8 @@ def test_empty_store_missing_data_ambiguity_and_prompt_injection_defenses(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    secret_key = "AIzaSuperConfidentialKey999"
-    monkeypatch.setenv("GEMINI_API_KEY", secret_key)
+    secret_key = "sk-cal-SuperConfidentialKey999"
+    monkeypatch.setenv("OPENAI_API_KEY", secret_key)
     settings = load_settings(env_file=None)
 
     empty_db = DatabaseManager(tmp_path / "empty_ai.db")

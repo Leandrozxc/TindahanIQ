@@ -28,8 +28,8 @@ def test_health_report_healthy_without_ai_key(isolated_env: Path) -> None:
 def test_health_report_masks_configured_ai_key(
     isolated_env: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    secret = "AIzaSyTopSecretKey999"
-    monkeypatch.setenv("GEMINI_API_KEY", secret)
+    secret = "sk-cal-TopSecretKey999"
+    monkeypatch.setenv("OPENAI_API_KEY", secret)
     settings = load_settings(env_file=None)
 
     report = run_health_checks(settings)

@@ -1,14 +1,14 @@
-"""LLM provider protocol and official Google GenAI SDK adapter."""
+"""LLM provider protocol and OpenAI-compatible SDK adapter."""
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from typing import Any, Protocol
 from uuid import uuid4
 
-from google import genai
-from google.genai import errors as genai_errors
-from google.genai import types
+import openai
+from openai import OpenAI
 
 from tindahaniq.config import AppSettings
 from tindahaniq.exceptions import AIServiceError
@@ -35,8 +35,8 @@ class LLMProvider(Protocol):
         """Generate the next assistant text or tool-call request."""
 
 
-class GeminiProvider:
-    """Google Gemini adapter backed by the official `google-genai` SDK."""
+class OpenAIProvider:
+    """OpenAI-compatible adapter backed by the official `openai` Python SDK."""
 
     def __init__(
         self,
@@ -44,21 +44,23 @@ class GeminiProvider:
         *,
         client: Any | None = None,
     ) -> None:
-        self._model = settings.gemini_model
+        self._model = settings.openai_model
+        self._max_completion_tokens = settings.openai_max_completion_tokens
         if client is not None:
             self._client = client
             return
 
-        if not settings.has_ai_api_key or settings.gemini_api_key is None:
+        if not settings.has_ai_api_key or settings.openai_api_key is None:
             raise AIServiceError(
-                "Missing GEMINI_API_KEY configuration",
+                "Missing OPENAI_API_KEY configuration",
                 user_message=(
                     "The AI Business Consultant is not configured yet. "
-                    "Add `GEMINI_API_KEY` to your `.env` file to enable AI chat."
+                    "Add `OPENAI_API_KEY` to your `.env` file to enable AI chat."
                 ),
             )
-        api_key = settings.gemini_api_key.get_secret_value().strip()
-        self._client = genai.Client(api_key=api_key)
+        api_key = settings.openai_api_key.get_secret_value().strip()
+        base_url = settings.openai_base_url.strip()
+        self._client = OpenAI(api_key=api_key, base_url=base_url)
 
     def generate_turn(
         self,
@@ -68,173 +70,174 @@ class GeminiProvider:
         system_instruction: str,
         tools: Sequence[ToolSpec],
     ) -> ProviderTurnResult:
-        """Invoke Gemini `generate_content` with conversation history and tool schemas."""
-        contents = _build_gemini_contents(conversation, current_turn_steps)
-        gemini_tools = (
-            [
-                types.Tool(
-                    function_declarations=[
-                        types.FunctionDeclaration(
-                            name=spec.name,
-                            description=spec.description,
-                            parameters_json_schema=spec.parameters_schema,
-                        )
-                        for spec in tools
-                    ]
-                )
+        """Invoke OpenAI Chat Completions with conversation history and tool schemas."""
+        messages = _build_openai_messages(system_instruction, conversation, current_turn_steps)
+        request_kwargs: dict[str, Any] = {
+            "model": self._model,
+            "messages": messages,
+            "max_completion_tokens": self._max_completion_tokens,
+            "temperature": 0.2,
+        }
+        if tools:
+            request_kwargs["tools"] = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": spec.name,
+                        "description": spec.description,
+                        "parameters": spec.parameters_schema,
+                    },
+                }
+                for spec in tools
             ]
-            if tools
-            else None
-        )
-        config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            tools=gemini_tools,
-            temperature=0.2,
-        )
 
         try:
-            response = self._client.models.generate_content(
-                model=self._model,
-                contents=contents,
-                config=config,
-            )
-        except genai_errors.APIError as exc:
-            raise _translate_gemini_api_error(exc) from exc
+            response = self._client.chat.completions.create(**request_kwargs)
+        except openai.APIStatusError as exc:
+            raise _translate_openai_api_error(exc) from exc
+        except (openai.APIConnectionError, openai.APITimeoutError) as exc:
+            raise AIServiceError(
+                f"Network error calling OpenAI provider ({exc.__class__.__name__})",
+                user_message=(
+                    "Could not reach the AI Business Consultant right now. "
+                    "Please check your internet connection and try again."
+                ),
+            ) from exc
         except Exception as exc:
             raise AIServiceError(
-                f"Unexpected error calling Gemini provider ({exc.__class__.__name__})",
+                f"Unexpected error calling OpenAI provider ({exc.__class__.__name__})",
                 user_message=(
                     "Could not reach the AI Business Consultant right now. "
                     "Please check your internet connection and try again."
                 ),
             ) from exc
 
-        return _parse_gemini_response(response)
+        return _parse_openai_response(response)
 
 
-def _build_gemini_contents(
+def _build_openai_messages(
+    system_instruction: str,
     conversation: Sequence[ChatMessage],
     current_turn_steps: Sequence[tuple[ProviderTurnResult, Sequence[ToolResultMessage]]],
-) -> list[types.Content]:
-    contents: list[types.Content] = []
+) -> list[dict[str, Any]]:
+    messages: list[dict[str, Any]] = [{"role": "system", "content": system_instruction}]
     for msg in conversation:
-        role = "user" if msg.role == "user" else "model"
-        contents.append(
-            types.Content(
-                role=role,
-                parts=[types.Part.from_text(text=msg.content)],
-            )
-        )
+        role = "user" if msg.role == "user" else "assistant"
+        messages.append({"role": role, "content": msg.content})
 
     for model_turn, tool_results in current_turn_steps:
-        if isinstance(model_turn.raw_model_content, types.Content):
-            contents.append(model_turn.raw_model_content)
-        else:
-            model_parts = [
-                types.Part.from_function_call(name=tc.name, args=tc.arguments)
+        assistant_msg: dict[str, Any] = {
+            "role": "assistant",
+            "content": model_turn.text,
+            "tool_calls": [
+                {
+                    "id": tc.call_id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.name,
+                        "arguments": json.dumps(tc.arguments),
+                    },
+                }
                 for tc in model_turn.tool_calls
-            ]
-            contents.append(types.Content(role="model", parts=model_parts))
+            ],
+        }
+        messages.append(assistant_msg)
 
-        response_parts = [
-            types.Part.from_function_response(name=tr.name, response=tr.payload)
-            for tr in tool_results
-        ]
-        contents.append(types.Content(role="user", parts=response_parts))
+        for tr in tool_results:
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tr.call_id,
+                    "content": json.dumps(tr.payload),
+                }
+            )
 
-    return contents
+    return messages
 
 
-def _parse_gemini_response(response: Any) -> ProviderTurnResult:
-    candidates = getattr(response, "candidates", None) or []
-    if not candidates:
+def _parse_openai_response(response: Any) -> ProviderTurnResult:
+    choices = getattr(response, "choices", None) or []
+    if not choices:
         raise AIServiceError(
-            "Gemini returned zero candidates",
+            "OpenAI returned zero choices",
             user_message=(
                 "The AI assistant could not generate a response for that request. "
                 "Please rephrase your question and try again."
             ),
         )
 
-    first_content = getattr(candidates[0], "content", None)
-    parts = getattr(first_content, "parts", None) or []
-
+    message = getattr(choices[0], "message", None)
+    raw_tool_calls = getattr(message, "tool_calls", None) or []
     tool_calls: list[ToolCallRequest] = []
-    text_fragments: list[str] = []
 
-    for part in parts:
-        fn_call = getattr(part, "function_call", None)
-        if fn_call is not None and getattr(fn_call, "name", None):
-            raw_args = getattr(fn_call, "args", None) or {}
-            call_id = str(getattr(fn_call, "id", None) or f"call_{uuid4().hex[:8]}")
-            tool_calls.append(
-                ToolCallRequest(
-                    call_id=call_id,
-                    name=str(fn_call.name),
-                    arguments=dict(raw_args),
-                )
-            )
+    for tc in raw_tool_calls:
+        fn = getattr(tc, "function", None)
+        fn_name = getattr(fn, "name", None)
+        if not fn_name:
             continue
+        raw_args = getattr(fn, "arguments", None)
+        if isinstance(raw_args, dict):
+            parsed_args = dict(raw_args)
+        elif isinstance(raw_args, str) and raw_args.strip():
+            try:
+                loaded = json.loads(raw_args)
+                parsed_args = dict(loaded) if isinstance(loaded, dict) else {}
+            except json.JSONDecodeError:
+                parsed_args = {}
+        else:
+            parsed_args = {}
+        call_id = str(getattr(tc, "id", None) or f"call_{uuid4().hex[:8]}")
+        tool_calls.append(
+            ToolCallRequest(
+                call_id=call_id,
+                name=str(fn_name),
+                arguments=parsed_args,
+            )
+        )
 
-        is_thought = bool(getattr(part, "thought", False))
-        part_text = getattr(part, "text", None)
-        if not is_thought and isinstance(part_text, str) and part_text:
-            text_fragments.append(part_text)
-
-    combined_text = "".join(text_fragments).strip() or None
-    if not tool_calls and combined_text is None:
-        fallback_text = getattr(response, "text", None)
-        if isinstance(fallback_text, str) and fallback_text.strip():
-            combined_text = fallback_text.strip()
+    raw_content = getattr(message, "content", None)
+    text = raw_content.strip() if isinstance(raw_content, str) and raw_content.strip() else None
 
     return ProviderTurnResult(
-        text=combined_text,
+        text=text,
         tool_calls=tuple(tool_calls),
-        raw_model_content=first_content,
+        raw_model_content=message,
     )
 
 
-def _translate_gemini_api_error(exc: genai_errors.APIError) -> AIServiceError:
-    code = getattr(exc, "code", None)
-    status_str = str(getattr(exc, "status", "") or "").upper()
-    message_str = str(getattr(exc, "message", "") or "").upper()
+def _translate_openai_api_error(exc: openai.APIStatusError) -> AIServiceError:
+    code = getattr(exc, "status_code", None)
+    message_str = str(exc).upper()
 
-    if code == 429 or "RESOURCE_EXHAUSTED" in status_str:
+    if code == 429 or "RATE_LIMIT" in message_str or "QUOTA" in message_str:
         return AIServiceError(
-            f"Gemini rate limit exceeded (code={code})",
+            f"OpenAI rate limit or quota exceeded (code={code})",
             user_message=(
-                "The AI Business Consultant hit its free-tier rate limit. "
-                "Please wait a moment and try your question again."
+                "The AI Business Consultant hit its API rate limit or credit quota. "
+                "Please wait a moment or check your API credits."
             ),
             details={"status_code": 429},
         )
-    if code in {400, 401, 403} and (
-        "API_KEY" in status_str
-        or "PERMISSION_DENIED" in status_str
-        or "UNAUTHENTICATED" in status_str
-        or "API KEY" in message_str
-        or "API_KEY" in message_str
-    ):
+    if code in {401, 403} or ("API_KEY" in message_str or "API KEY" in message_str):
         return AIServiceError(
-            f"Gemini authentication/key error (code={code})",
+            f"OpenAI authentication/key error (code={code})",
             user_message=(
-                "Your `GEMINI_API_KEY` was rejected by Google Gemini. "
+                "Your `OPENAI_API_KEY` was rejected by the AI provider. "
                 "Please check the key in your `.env` file."
             ),
             details={"status_code": code},
         )
-    if code == 404 or "NOT_FOUND" in status_str:
+    if code == 404:
         return AIServiceError(
-            f"Gemini model not found/unavailable (code={code}, status={status_str})",
+            f"OpenAI model or endpoint not found (code={code})",
             user_message=(
-                "The configured `GEMINI_MODEL` is unavailable or not supported for your API key. "
-                "Update `GEMINI_MODEL` in your `.env` file (for example, `gemini-3.5-flash-lite`) "
-                "and restart the app."
+                "The configured `OPENAI_MODEL` or `OPENAI_BASE_URL` was not found. "
+                "Check your `.env` settings and restart the app."
             ),
             details={"status_code": code},
         )
     return AIServiceError(
-        f"Gemini API error (code={code}, status={status_str})",
+        f"OpenAI API error (code={code})",
         user_message=(
             "The AI provider returned a temporary service error. "
             "Your store dashboards and calculators remain available."

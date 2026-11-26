@@ -1,27 +1,28 @@
-"""Unit tests for GeminiProvider configuration guards, response parsing, and error mapping."""
+"""Unit tests for OpenAIProvider configuration guards, response parsing, and error mapping."""
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import httpx
+import openai
 import pytest
-from google.genai import errors as genai_errors
-from google.genai import types
 
-from tindahaniq.ai.provider import GeminiProvider
+from tindahaniq.ai.provider import OpenAIProvider
 from tindahaniq.config import load_settings
 from tindahaniq.exceptions import AIServiceError
 from tindahaniq.models import ChatMessage, ToolResultMessage, ToolSpec
 
 
-class _FakeModelsEndpoint:
+class _FakeCompletionsEndpoint:
     def __init__(self, responses: list[Any]) -> None:
         self._responses = list(responses)
         self.calls: list[dict[str, Any]] = []
 
-    def generate_content(self, **kwargs: Any) -> Any:
+    def create(self, **kwargs: Any) -> Any:
         self.calls.append(kwargs)
         item = self._responses.pop(0)
         if isinstance(item, BaseException):
@@ -29,44 +30,51 @@ class _FakeModelsEndpoint:
         return item
 
 
-class _FakeGenAIClient:
+class _FakeChatNamespace:
     def __init__(self, responses: list[Any]) -> None:
-        self.models = _FakeModelsEndpoint(responses)
+        self.completions = _FakeCompletionsEndpoint(responses)
 
 
-def test_gemini_provider_requires_api_key(isolated_env: Path) -> None:
+class _FakeOpenAIClient:
+    def __init__(self, responses: list[Any]) -> None:
+        self.chat = _FakeChatNamespace(responses)
+
+
+def _make_status_error(status_code: int, message: str) -> openai.APIStatusError:
+    request = httpx.Request("POST", "https://aiki-labs.up.railway.app/api/v1/chat/completions")
+    response = httpx.Response(status_code, request=request, json={"error": {"message": message}})
+    return openai.APIStatusError(message, response=response, body={"error": {"message": message}})
+
+
+def test_openai_provider_requires_api_key(isolated_env: Path) -> None:
     settings = load_settings(env_file=None)
-    with pytest.raises(AIServiceError, match="Missing GEMINI_API_KEY"):
-        GeminiProvider(settings)
+    with pytest.raises(AIServiceError, match="Missing OPENAI_API_KEY"):
+        OpenAIProvider(settings)
 
 
-def test_gemini_provider_parses_tool_calls_preserves_model_content_and_filters_thoughts(
+def test_openai_provider_parses_tool_calls_and_serializes_tool_results(
     isolated_env: Path,
 ) -> None:
     settings = load_settings(env_file=None)
 
-    fn_content = types.Content(
-        role="model",
-        parts=[
-            types.Part(text="internal thinking...", thought=True),
-            types.Part.from_function_call(
-                name="analyze_profitability", args={"sort_by": "gross_profit"}
-            ),
-        ],
+    tc = SimpleNamespace(
+        id="call_abc123",
+        function=SimpleNamespace(
+            name="analyze_profitability",
+            arguments=json.dumps({"sort_by": "gross_profit"}),
+        ),
     )
-    resp_1 = SimpleNamespace(candidates=[SimpleNamespace(content=fn_content)])
+    msg_1 = SimpleNamespace(content=None, tool_calls=[tc])
+    resp_1 = SimpleNamespace(choices=[SimpleNamespace(message=msg_1)])
 
-    text_content = types.Content(
-        role="model",
-        parts=[
-            types.Part(text="hidden chain of thought", thought=True),
-            types.Part.from_text(text="**Business Insight**\nCoca-Cola Mismo leads profits."),
-        ],
+    msg_2 = SimpleNamespace(
+        content="**Business Insight**\nCoca-Cola Mismo leads profits.",
+        tool_calls=None,
     )
-    resp_2 = SimpleNamespace(candidates=[SimpleNamespace(content=text_content)])
+    resp_2 = SimpleNamespace(choices=[SimpleNamespace(message=msg_2)])
 
-    fake_client = _FakeGenAIClient([resp_1, resp_2])
-    provider = GeminiProvider(settings, client=fake_client)
+    fake_client = _FakeOpenAIClient([resp_1, resp_2])
+    provider = OpenAIProvider(settings, client=fake_client)
 
     spec = ToolSpec(
         name="analyze_profitability",
@@ -82,9 +90,10 @@ def test_gemini_provider_parses_tool_calls_preserves_model_content_and_filters_t
         tools=(spec,),
     )
     assert len(turn_1.tool_calls) == 1
+    assert turn_1.tool_calls[0].call_id == "call_abc123"
     assert turn_1.tool_calls[0].name == "analyze_profitability"
+    assert turn_1.tool_calls[0].arguments == {"sort_by": "gross_profit"}
     assert turn_1.text is None
-    assert turn_1.raw_model_content is fn_content
 
     tool_res = ToolResultMessage(
         call_id=turn_1.tool_calls[0].call_id,
@@ -99,20 +108,28 @@ def test_gemini_provider_parses_tool_calls_preserves_model_content_and_filters_t
     )
     assert turn_2.tool_calls == ()
     assert turn_2.text == "**Business Insight**\nCoca-Cola Mismo leads profits."
-    # Verify exact raw_model_content was passed back in step 2 contents
-    sent_contents = fake_client.models.calls[1]["contents"]
-    assert sent_contents[1] is fn_content
+
+    sent_messages = fake_client.chat.completions.calls[1]["messages"]
+    assert sent_messages[0]["role"] == "system"
+    assert sent_messages[2]["role"] == "assistant"
+    assert sent_messages[2]["tool_calls"][0]["id"] == "call_abc123"
+    assert sent_messages[3]["role"] == "tool"
+    assert sent_messages[3]["tool_call_id"] == "call_abc123"
 
 
-def test_gemini_provider_maps_rate_limit_and_empty_candidates(isolated_env: Path) -> None:
+def test_openai_provider_maps_rate_limit_auth_not_found_and_empty_choices(
+    isolated_env: Path,
+) -> None:
     settings = load_settings(env_file=None)
-    rate_err = genai_errors.ClientError(
-        429,
-        {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "message": "Quota exceeded"}},
-    )
-    empty_resp = SimpleNamespace(candidates=[])
+    rate_err = _make_status_error(429, "Rate limit exceeded")
+    auth_err = _make_status_error(401, "Invalid API key provided")
+    not_found_err = _make_status_error(404, "Model gpt-6-luna not found")
+    empty_resp = SimpleNamespace(choices=[])
 
-    provider = GeminiProvider(settings, client=_FakeGenAIClient([rate_err, empty_resp]))
+    provider = OpenAIProvider(
+        settings,
+        client=_FakeOpenAIClient([rate_err, auth_err, not_found_err, empty_resp]),
+    )
 
     with pytest.raises(AIServiceError) as exc_429:
         provider.generate_turn(
@@ -123,38 +140,14 @@ def test_gemini_provider_maps_rate_limit_and_empty_candidates(isolated_env: Path
         )
     assert "rate limit" in exc_429.value.user_message.lower()
 
-    with pytest.raises(AIServiceError):
+    with pytest.raises(AIServiceError) as exc_401:
         provider.generate_turn(
             conversation=[ChatMessage(role="user", content="Hi")],
             current_turn_steps=(),
             system_instruction="sys",
             tools=(),
         )
-
-
-def test_gemini_provider_maps_model_not_found_and_invalid_api_key(isolated_env: Path) -> None:
-    settings = load_settings(env_file=None)
-    not_found_err = genai_errors.ClientError(
-        404,
-        {
-            "error": {
-                "code": 404,
-                "status": "NOT_FOUND",
-                "message": "This model models/gemini-2.5-flash is no longer available.",
-            }
-        },
-    )
-    bad_key_err = genai_errors.ClientError(
-        400,
-        {
-            "error": {
-                "code": 400,
-                "status": "INVALID_ARGUMENT",
-                "message": "API key not valid. Please pass a valid API key.",
-            }
-        },
-    )
-    provider = GeminiProvider(settings, client=_FakeGenAIClient([not_found_err, bad_key_err]))
+    assert "openai_api_key" in exc_401.value.user_message.lower()
 
     with pytest.raises(AIServiceError) as exc_404:
         provider.generate_turn(
@@ -163,13 +156,12 @@ def test_gemini_provider_maps_model_not_found_and_invalid_api_key(isolated_env: 
             system_instruction="sys",
             tools=(),
         )
-    assert "gemini_model" in exc_404.value.user_message.lower()
+    assert "openai_model" in exc_404.value.user_message.lower()
 
-    with pytest.raises(AIServiceError) as exc_400:
+    with pytest.raises(AIServiceError):
         provider.generate_turn(
             conversation=[ChatMessage(role="user", content="Hi")],
             current_turn_steps=(),
             system_instruction="sys",
             tools=(),
         )
-    assert "gemini_api_key" in exc_400.value.user_message.lower()
